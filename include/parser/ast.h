@@ -33,6 +33,11 @@ enum class TokenType {
     OR,
     LPAREN,
     RPAREN,
+    IS,
+    NOT,
+    NULL_LITERAL,
+    LIKE,
+    REGEX_LITERAL,
     END_OF_INPUT,
     INVALID
 };
@@ -54,7 +59,11 @@ enum class ComparisonOp {
     LESS_THAN,
     GREATER_THAN,
     LESS_EQUAL,
-    GREATER_EQUAL
+    GREATER_EQUAL,
+    IS_NULL,
+    IS_NOT_NULL,
+    LIKE,
+    NOT_LIKE
 };
 
 // AST Node for field selection (e.g., breakfast_menu.food.name)

@@ -43,6 +43,7 @@ private:
     std::unique_ptr<WhereExpr> parseWherePrimary();
     std::unique_ptr<WhereExpr> parseWhereCondition();
     ComparisonOp parseComparisonOp();
+    std::string parseRegexPattern();  // Parse regex pattern between / delimiters
     void parseOrderByClause(Query& query);
     void parseLimitClause(Query& query);
 };

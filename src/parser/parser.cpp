@@ -212,7 +212,57 @@ std::unique_ptr<WhereExpr> Parser::parseWhereCondition() {
     // Parse field path
     condition->field = parseFieldPath();
 
-    // Parse comparison operator
+    // Check for IS NULL, IS NOT NULL, LIKE, or IS NOT LIKE
+    if (peek().type == TokenType::IS) {
+        advance(); // consume IS
+
+        // Check for NOT
+        if (peek().type == TokenType::NOT) {
+            advance(); // consume NOT
+
+            // Must be followed by NULL or LIKE
+            if (peek().type == TokenType::NULL_LITERAL) {
+                advance(); // consume NULL
+                condition->op = ComparisonOp::IS_NOT_NULL;
+                condition->value = "";
+                condition->is_numeric = false;
+                return condition;
+            }
+            else if (peek().type == TokenType::LIKE) {
+                advance(); // consume LIKE
+                // Expect /regex/
+                expect(TokenType::SLASH, "Expected '/' to start regex pattern");
+                condition->op = ComparisonOp::NOT_LIKE;
+                condition->value = parseRegexPattern();
+                condition->is_numeric = false;
+                return condition;
+            }
+            else {
+                throw ParseError("Expected NULL or LIKE after IS NOT");
+            }
+        }
+        else if (peek().type == TokenType::NULL_LITERAL) {
+            advance(); // consume NULL
+            condition->op = ComparisonOp::IS_NULL;
+            condition->value = "";
+            condition->is_numeric = false;
+            return condition;
+        }
+        else {
+            throw ParseError("Expected NULL or NOT after IS");
+        }
+    }
+    else if (peek().type == TokenType::LIKE) {
+        advance(); // consume LIKE
+        // Expect /regex/
+        expect(TokenType::SLASH, "Expected '/' to start regex pattern");
+        condition->op = ComparisonOp::LIKE;
+        condition->value = parseRegexPattern();
+        condition->is_numeric = false;
+        return condition;
+    }
+
+    // Parse standard comparison operator
     condition->op = parseComparisonOp();
 
     // Parse value
@@ -258,6 +308,38 @@ ComparisonOp Parser::parseComparisonOp() {
         default:
             throw ParseError("Expected comparison operator");
     }
+}
+
+std::string Parser::parseRegexPattern() {
+    // We've already consumed the opening '/'
+    // Now collect all tokens until we hit the closing '/'
+    std::string pattern;
+
+    while (!isAtEnd() && peek().type != TokenType::SLASH) {
+        Token token = advance();
+
+        // Add the token value to the pattern
+        if (!pattern.empty() && token.type != TokenType::DOT &&
+            token.type != TokenType::COMMA && token.type != TokenType::LPAREN &&
+            token.type != TokenType::RPAREN) {
+            // Add space before this token if it's not punctuation
+            if (pattern.back() != '.' && pattern.back() != '(' &&
+                pattern.back() != ')' && pattern.back() != '*' &&
+                pattern.back() != '+' && pattern.back() != '?' &&
+                pattern.back() != '|' && pattern.back() != '[' &&
+                pattern.back() != ']') {
+                // Don't add space, build directly
+            }
+        }
+
+        // Append the token value directly without spaces
+        pattern += token.value;
+    }
+
+    // Expect closing '/'
+    expect(TokenType::SLASH, "Expected '/' to close regex pattern");
+
+    return pattern;
 }
 
 void Parser::parseOrderByClause(Query& query) {

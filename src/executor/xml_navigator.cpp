@@ -2,6 +2,7 @@
 #include <stdexcept>
 #include <typeinfo>
 #include <functional>
+#include <regex>
 
 namespace expocli {
 
@@ -99,6 +100,19 @@ bool XmlNavigator::evaluateCondition(
     const pugi::xml_node& node,
     const WhereCondition& condition
 ) {
+    // Special handling for IS NULL and IS NOT NULL
+    if (condition.op == ComparisonOp::IS_NULL) {
+        // IS NULL: true if attribute is NOT present (nodeValue is empty)
+        std::string nodeValue = getNodeValue(node, condition.field);
+        return nodeValue.empty();
+    }
+
+    if (condition.op == ComparisonOp::IS_NOT_NULL) {
+        // IS NOT NULL: true if attribute IS present (nodeValue is not empty)
+        std::string nodeValue = getNodeValue(node, condition.field);
+        return !nodeValue.empty();
+    }
+
     std::string nodeValue = getNodeValue(node, condition.field);
 
     if (nodeValue.empty()) {
@@ -113,6 +127,19 @@ bool XmlNavigator::evaluateCondition(
     const WhereCondition& condition,
     size_t parentDepth
 ) {
+    // Special handling for IS NULL and IS NOT NULL
+    if (condition.op == ComparisonOp::IS_NULL) {
+        // IS NULL: true if attribute is NOT present (nodeValue is empty)
+        std::string nodeValue = getNodeValueRelative(node, condition.field, parentDepth);
+        return nodeValue.empty();
+    }
+
+    if (condition.op == ComparisonOp::IS_NOT_NULL) {
+        // IS NOT NULL: true if attribute IS present (nodeValue is not empty)
+        std::string nodeValue = getNodeValueRelative(node, condition.field, parentDepth);
+        return !nodeValue.empty();
+    }
+
     std::string nodeValue = getNodeValueRelative(node, condition.field, parentDepth);
 
     if (nodeValue.empty()) {
@@ -215,6 +242,17 @@ bool XmlNavigator::compareValues(
     ComparisonOp op,
     bool isNumeric
 ) {
+    // Handle LIKE and NOT_LIKE with regex
+    if (op == ComparisonOp::LIKE || op == ComparisonOp::NOT_LIKE) {
+        try {
+            std::regex pattern(targetValue);
+            bool matches = std::regex_search(nodeValue, pattern);
+            return (op == ComparisonOp::LIKE) ? matches : !matches;
+        } catch (const std::regex_error&) {
+            return false; // Invalid regex
+        }
+    }
+
     if (isNumeric) {
         try {
             double nodeNum = std::stod(nodeValue);
@@ -233,6 +271,8 @@ bool XmlNavigator::compareValues(
                     return nodeNum <= targetNum;
                 case ComparisonOp::GREATER_EQUAL:
                     return nodeNum >= targetNum;
+                default:
+                    return false;
             }
         } catch (...) {
             return false;
@@ -252,6 +292,8 @@ bool XmlNavigator::compareValues(
                 return nodeValue <= targetValue;
             case ComparisonOp::GREATER_EQUAL:
                 return nodeValue >= targetValue;
+            default:
+                return false;
         }
     }
 

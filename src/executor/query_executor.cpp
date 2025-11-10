@@ -188,14 +188,44 @@ std::vector<ResultRow> QueryExecutor::processFile(
         if (whereField.components.size() < 2) {
             // Shorthand path: find all nodes that contain the WHERE attribute
             // and evaluate the condition on parent nodes that have the attribute as a child
+
+            // Check if this is an IS NULL or IS NOT NULL condition
+            bool isNullCheck = false;
+            if (const auto* condition = dynamic_cast<const WhereCondition*>(query.where.get())) {
+                isNullCheck = (condition->op == ComparisonOp::IS_NULL ||
+                              condition->op == ComparisonOp::IS_NOT_NULL);
+            }
+
             std::function<void(const pugi::xml_node&)> searchTree =
                 [&](const pugi::xml_node& node) {
                     if (!node) return;
 
-                    // Check if this node has the WHERE attribute as a direct child
-                    pugi::xml_node whereAttrNode = XmlNavigator::findFirstElementByName(node, whereField.components[0]);
-                    if (whereAttrNode && whereAttrNode.parent() == node) {
-                        // This node has the attribute we're filtering on
+                    // For IS NULL/IS NOT NULL, check all nodes
+                    // For other operators, only check nodes that have the attribute
+                    bool shouldEvaluate = false;
+
+                    if (isNullCheck) {
+                        // For IS NULL/IS NOT NULL, evaluate on nodes that have at least one SELECT field
+                        // This ensures we're checking the right "level" of nodes
+                        if (node.type() == pugi::node_element && node != *doc) {
+                            // Check if this node has at least one of the SELECT fields as a child
+                            for (const auto& selectField : query.select_fields) {
+                                if (!selectField.include_filename && selectField.components.size() == 1) {
+                                    pugi::xml_node foundNode = XmlNavigator::findFirstElementByName(node, selectField.components[0]);
+                                    if (foundNode && foundNode.parent() == node) {
+                                        shouldEvaluate = true;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        // Check if this node has the WHERE attribute as a direct child
+                        pugi::xml_node whereAttrNode = XmlNavigator::findFirstElementByName(node, whereField.components[0]);
+                        shouldEvaluate = (whereAttrNode && whereAttrNode.parent() == node);
+                    }
+
+                    if (shouldEvaluate) {
                         // Evaluate WHERE condition on this node
                         if (XmlNavigator::evaluateWhereExpr(node, query.where.get(), 0)) {
                             ResultRow row;

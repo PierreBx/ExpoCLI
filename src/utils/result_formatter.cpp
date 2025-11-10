@@ -13,6 +13,9 @@ void ResultFormatter::print(const std::vector<ResultRow>& results, std::ostream&
 std::string ResultFormatter::formatAsText(const std::vector<ResultRow>& results) {
     std::ostringstream oss;
 
+    // Add blank line before results
+    oss << "\n";
+
     if (results.empty()) {
         oss << "No results found.\n";
         return oss.str();

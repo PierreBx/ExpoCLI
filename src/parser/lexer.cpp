@@ -166,6 +166,10 @@ TokenType Lexer::identifyKeyword(const std::string& word) const {
     if (upper == "LIMIT") return TokenType::LIMIT;
     if (upper == "ASC") return TokenType::ASC;
     if (upper == "DESC") return TokenType::DESC;
+    if (upper == "IS") return TokenType::IS;
+    if (upper == "NOT") return TokenType::NOT;
+    if (upper == "NULL") return TokenType::NULL_LITERAL;
+    if (upper == "LIKE") return TokenType::LIKE;
 
     return TokenType::IDENTIFIER;
 }
