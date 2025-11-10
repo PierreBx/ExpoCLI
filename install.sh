@@ -80,7 +80,40 @@ echo ""
 # Make wrapper script executable (if not already)
 chmod +x "${WRAPPER_SCRIPT}"
 
+# Force rebuild of the binary to ensure latest code is compiled
+echo "Forcing clean rebuild of expocli..."
+cd "${SCRIPT_DIR}"
+
+# Check if Docker is available
+if ! command -v docker &> /dev/null; then
+    echo -e "${YELLOW}⚠${NC}  Docker not found - skipping rebuild"
+    echo "    The binary will be compiled on first run"
+else
+    # Build Docker image if needed
+    if ! docker compose run --rm --no-TTY xml-query-cli true 2>/dev/null; then
+        echo "Building Docker image..."
+        docker compose build
+    fi
+
+    # Force clean rebuild by removing old build directory
+    echo "Cleaning old build..."
+    docker compose run --rm --no-TTY xml-query-cli bash -c "rm -rf /app/build" 2>/dev/null || true
+
+    # Rebuild the binary
+    echo "Compiling expocli with latest code..."
+    docker compose run --rm --no-TTY xml-query-cli bash -c \
+        "mkdir -p /app/build && cd /app/build && cmake .. >/dev/null 2>&1 && make" >&2
+
+    if docker compose run --rm --no-TTY xml-query-cli test -f /app/build/expocli 2>/dev/null; then
+        echo -e "${GREEN}✓${NC} Compilation successful"
+    else
+        echo -e "${YELLOW}⚠${NC}  Compilation may have failed, but installation continues"
+        echo "    The binary will be compiled on first run if needed"
+    fi
+fi
+
 # Test the setup
+echo ""
 echo "Testing setup..."
 cd "${SCRIPT_DIR}"
 
@@ -107,10 +140,6 @@ echo -e "  ${BLUE}expocli${NC}                                    # Start intera
 echo -e "  ${BLUE}expocli 'SELECT name FROM ./data'${NC}         # Single query"
 echo -e "  ${BLUE}expocli --help${NC}                             # Show help"
 echo ""
-echo "The first run will:"
-echo "  • Build the Docker image (if not already built)"
-echo "  • Compile expocli (if not already compiled)"
-echo "  • This may take 1-2 minutes"
-echo ""
-echo "Subsequent runs will be instant!"
+echo "Note: expocli has been compiled with the latest code."
+echo "      Future runs will use this compiled binary."
 echo ""
