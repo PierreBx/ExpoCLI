@@ -40,7 +40,14 @@ set(SOURCES
 # Create executable
 add_executable(expocli ${SOURCES} ${pugixml_SOURCE_DIR}/src/pugixml.cpp)
 
-# Link libraries (pugixml is header-only style, included directly)
+# Find and link readline library
+find_library(READLINE_LIBRARY NAMES readline)
+if(READLINE_LIBRARY)
+    target_link_libraries(expocli ${READLINE_LIBRARY})
+    message(STATUS "Found readline library: ${READLINE_LIBRARY}")
+else()
+    message(WARNING "readline library not found - command history will not work")
+endif()
 
 # Install target
 install(TARGETS expocli DESTINATION bin)

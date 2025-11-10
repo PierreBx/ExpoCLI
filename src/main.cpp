@@ -7,12 +7,73 @@
 #include <sstream>
 #include <csignal>
 #include <cstdlib>
+#include <cstring>
+#include <readline/readline.h>
+#include <readline/history.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <pwd.h>
+
+// History file path
+static std::string historyFilePath;
 
 // Signal handler for CTRL-C (SIGINT)
 void signalHandler(int signal) {
     if (signal == SIGINT) {
+        // Save history before exiting
+        if (!historyFilePath.empty()) {
+            write_history(historyFilePath.c_str());
+        }
         std::cout << "\n\nBye!\n";
         std::exit(0);
+    }
+}
+
+// Get user's home directory
+std::string getHomeDirectory() {
+    const char* home = getenv("HOME");
+    if (home != nullptr) {
+        return std::string(home);
+    }
+
+    // Fallback to passwd entry
+    struct passwd* pw = getpwuid(getuid());
+    if (pw != nullptr && pw->pw_dir != nullptr) {
+        return std::string(pw->pw_dir);
+    }
+
+    return "";
+}
+
+// Get history file path
+std::string getHistoryFilePath() {
+    std::string home = getHomeDirectory();
+    if (home.empty()) {
+        return "";
+    }
+    return home + "/.expocli_history";
+}
+
+// Initialize command history
+void initializeHistory() {
+    historyFilePath = getHistoryFilePath();
+
+    if (historyFilePath.empty()) {
+        std::cerr << "Warning: Could not determine history file path\n";
+        return;
+    }
+
+    // Set maximum history entries
+    stifle_history(100);
+
+    // Load existing history file
+    read_history(historyFilePath.c_str());
+}
+
+// Save command history
+void saveHistory() {
+    if (!historyFilePath.empty()) {
+        write_history(historyFilePath.c_str());
     }
 }
 
@@ -20,6 +81,7 @@ void printWelcome() {
     std::cout << "XML Query CLI - Phase 2 (Interactive Mode)\n";
     std::cout << "Type 'help' for usage information.\n";
     std::cout << "Type 'exit', 'quit', or press Ctrl+C to exit.\n";
+    std::cout << "Use UP/DOWN arrow keys to navigate command history.\n";
     std::cout << "Enter SQL-like queries to search XML files.\n";
     std::cout << "Note: Queries must be terminated with a semicolon (;)\n\n";
 }
@@ -58,7 +120,8 @@ void printUsage(const char* programName) {
     std::cout << "  help, \\h         Show this help message\n";
     std::cout << "  exit, quit       Exit the program\n";
     std::cout << "  Ctrl+C           Exit the program (SIGINT)\n";
-    std::cout << "  \\c               Clear screen\n\n";
+    std::cout << "  \\c               Clear screen\n";
+    std::cout << "  UP/DOWN arrows   Navigate command history (last 100 queries)\n\n";
 }
 
 void executeQuery(const std::string& query) {
@@ -92,26 +155,31 @@ void interactiveMode() {
     // Register signal handler for CTRL-C
     std::signal(SIGINT, signalHandler);
 
+    // Initialize command history
+    initializeHistory();
+
     printWelcome();
 
-    std::string line;
     std::string query;
+    char* lineBuffer = nullptr;
 
     while (true) {
-        // Show prompt
-        if (query.empty()) {
-            std::cout << "expocli> ";
-        } else {
-            std::cout << "      -> ";
-        }
-        std::cout.flush();
+        // Set prompt based on whether we're continuing a query
+        const char* prompt = query.empty() ? "expocli> " : "      -> ";
 
-        // Read line
-        if (!std::getline(std::cin, line)) {
-            // EOF (Ctrl+D)
+        // Read line with readline (supports arrow keys, history, etc.)
+        lineBuffer = readline(prompt);
+
+        // Check for EOF (Ctrl+D)
+        if (lineBuffer == nullptr) {
             std::cout << "\nBye!\n";
+            saveHistory();
             break;
         }
+
+        // Convert to C++ string
+        std::string line(lineBuffer);
+        free(lineBuffer);
 
         // Trim leading whitespace only (preserve trailing for semicolon check)
         size_t firstNonSpace = line.find_first_not_of(" \t\n\r");
@@ -137,6 +205,7 @@ void interactiveMode() {
 
             if (trimmedLine == "exit" || trimmedLine == "quit" || trimmedLine == "\\q") {
                 std::cout << "Bye!\n";
+                saveHistory();
                 break;
             }
 
@@ -172,6 +241,11 @@ void interactiveMode() {
                 query += " ";
             }
             query += line.substr(0, semicolonPos);
+
+            // Add completed query to history (only if not empty)
+            if (!query.empty()) {
+                add_history(query.c_str());
+            }
 
             // Execute the query
             executeQuery(query);
