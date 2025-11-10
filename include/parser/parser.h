@@ -40,6 +40,7 @@ private:
     std::unique_ptr<WhereExpr> parseWhereExpression();
     std::unique_ptr<WhereExpr> parseWhereOr();
     std::unique_ptr<WhereExpr> parseWhereAnd();
+    std::unique_ptr<WhereExpr> parseWherePrimary();
     std::unique_ptr<WhereExpr> parseWhereCondition();
     ComparisonOp parseComparisonOp();
     void parseOrderByClause(Query& query);

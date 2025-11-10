@@ -181,17 +181,29 @@ std::unique_ptr<WhereExpr> Parser::parseWhereOr() {
 }
 
 std::unique_ptr<WhereExpr> Parser::parseWhereAnd() {
-    auto left = parseWhereCondition();
+    auto left = parseWherePrimary();
 
     while (match(TokenType::AND)) {
         auto logical = std::make_unique<WhereLogical>();
         logical->op = LogicalOp::AND;
         logical->left = std::move(left);
-        logical->right = parseWhereCondition();
+        logical->right = parseWherePrimary();
         left = std::move(logical);
     }
 
     return left;
+}
+
+std::unique_ptr<WhereExpr> Parser::parseWherePrimary() {
+    // Handle parenthesized expressions
+    if (match(TokenType::LPAREN)) {
+        auto expr = parseWhereExpression();
+        expect(TokenType::RPAREN, "Expected closing parenthesis");
+        return expr;
+    }
+
+    // Otherwise, parse a simple condition
+    return parseWhereCondition();
 }
 
 std::unique_ptr<WhereExpr> Parser::parseWhereCondition() {
