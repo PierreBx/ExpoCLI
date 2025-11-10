@@ -125,10 +125,13 @@ void printUsage(const char* programName) {
     std::cout << "  \\c               Clear screen\n";
     std::cout << "  UP/DOWN arrows   Navigate command history (last 100 queries)\n\n";
     std::cout << "Configuration Commands:\n";
-    std::cout << "  SET XSD <path>   Set XSD schema file path\n";
-    std::cout << "  SET DEST <path>  Set destination directory path\n";
-    std::cout << "  SHOW XSD         Display current XSD path\n";
-    std::cout << "  SHOW DEST        Display current DEST path\n\n";
+    std::cout << "  SET XSD <path>        Set XSD schema file path\n";
+    std::cout << "  SET DEST <path>       Set destination directory path\n";
+    std::cout << "  SHOW XSD              Display current XSD path\n";
+    std::cout << "  SHOW DEST             Display current DEST path\n\n";
+    std::cout << "Generation Commands:\n";
+    std::cout << "  GENERATE XML <count>              Generate <count> XML files from XSD\n";
+    std::cout << "  GENERATE XML <count> PREFIX <pre> Generate with custom filename prefix\n\n";
 }
 
 void executeQuery(const std::string& query) {

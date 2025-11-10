@@ -174,6 +174,9 @@ TokenType Lexer::identifyKeyword(const std::string& word) const {
     if (upper == "SHOW") return TokenType::SHOW;
     if (upper == "XSD") return TokenType::XSD;
     if (upper == "DEST") return TokenType::DEST;
+    if (upper == "GENERATE") return TokenType::GENERATE;
+    if (upper == "XML") return TokenType::XML;
+    if (upper == "PREFIX") return TokenType::PREFIX;
 
     return TokenType::IDENTIFIER;
 }

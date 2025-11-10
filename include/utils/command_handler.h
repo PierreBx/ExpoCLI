@@ -18,6 +18,7 @@ private:
 
     bool handleSetCommand(const std::string& input);
     bool handleShowCommand(const std::string& input);
+    bool handleGenerateCommand(const std::string& input);
 
     void setXsdPath(const std::string& path);
     void setDestPath(const std::string& path);

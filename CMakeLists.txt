@@ -37,6 +37,10 @@ set(SOURCES
     src/utils/result_formatter.cpp
     src/utils/app_context.cpp
     src/utils/command_handler.cpp
+    src/generator/xsd_schema.cpp
+    src/generator/xsd_parser.cpp
+    src/generator/data_generator.cpp
+    src/generator/xml_generator.cpp
 )
 
 # Create executable

@@ -1,5 +1,7 @@
 #include "utils/command_handler.h"
 #include "parser/lexer.h"
+#include "generator/xsd_parser.h"
+#include "generator/xml_generator.h"
 #include <iostream>
 #include <filesystem>
 #include <fstream>
@@ -26,6 +28,11 @@ bool CommandHandler::handleCommand(const std::string& input) {
     // Check if it's a SHOW command
     if (tokens[0].type == TokenType::SHOW) {
         return handleShowCommand(input);
+    }
+
+    // Check if it's a GENERATE command
+    if (tokens[0].type == TokenType::GENERATE) {
+        return handleGenerateCommand(input);
     }
 
     // Not a recognized command, treat as query
@@ -223,6 +230,84 @@ bool CommandHandler::validateAndCreateDestDirectory(const std::string& path) {
         std::cerr << "Error: Failed to create directory: " << e.what() << "\n";
         return false;
     }
+}
+
+bool CommandHandler::handleGenerateCommand(const std::string& input) {
+    Lexer lexer(input);
+    auto tokens = lexer.tokenize();
+
+    // Expect: GENERATE XML <count> [PREFIX <prefix>]
+    if (tokens.size() < 3) {
+        std::cerr << "Error: GENERATE command requires XML and count\n";
+        std::cerr << "Usage: GENERATE XML <count>\n";
+        std::cerr << "       GENERATE XML <count> PREFIX <prefix>\n";
+        return true;
+    }
+
+    // Check for XML keyword
+    if (tokens[1].type != TokenType::XML) {
+        std::cerr << "Error: Expected XML after GENERATE\n";
+        return true;
+    }
+
+    // Get count
+    if (tokens[2].type != TokenType::NUMBER) {
+        std::cerr << "Error: Expected number after GENERATE XML\n";
+        return true;
+    }
+
+    int count = 0;
+    try {
+        count = std::stoi(tokens[2].value);
+    } catch (...) {
+        std::cerr << "Error: Invalid count value\n";
+        return true;
+    }
+
+    if (count <= 0) {
+        std::cerr << "Error: Count must be positive\n";
+        return true;
+    }
+
+    // Check for optional PREFIX
+    std::string prefix = "generated_";
+    if (tokens.size() >= 5 && tokens[3].type == TokenType::PREFIX) {
+        if (tokens[4].type == TokenType::IDENTIFIER ||
+            tokens[4].type == TokenType::STRING_LITERAL) {
+            prefix = tokens[4].value;
+        }
+    }
+
+    // Check if XSD is set
+    if (!context_.hasXsdPath()) {
+        std::cerr << "Error: XSD path not set. Use SET XSD <path> first\n";
+        return true;
+    }
+
+    // Check if DEST is set
+    if (!context_.hasDestPath()) {
+        std::cerr << "Error: DEST path not set. Use SET DEST <path> first\n";
+        return true;
+    }
+
+    std::string xsdPath = context_.getXsdPath().value();
+    std::string destPath = context_.getDestPath().value();
+
+    try {
+        // Parse XSD schema
+        std::cout << "Parsing XSD schema: " << xsdPath << "\n";
+        auto schema = XsdParser::parse(xsdPath);
+
+        // Generate XML files
+        XmlGenerator generator;
+        generator.generateFiles(*schema, count, destPath, prefix);
+
+    } catch (const std::exception& e) {
+        std::cerr << "Error generating XML files: " << e.what() << "\n";
+        return true;
+    }
+
+    return true;
 }
 
 } // namespace expocli
