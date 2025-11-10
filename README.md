@@ -33,7 +33,33 @@ This tool provides a simple, SQL-like interface for querying XML data. It's desi
 
 ## Quick Start
 
-### Using Docker
+### Recommended: Transparent Local Installation
+
+Use expocli as a native command on your machine (it runs in Docker transparently):
+
+1. **Run the installer:**
+```bash
+./install.sh
+```
+
+2. **Reload your shell:**
+```bash
+source ~/.bashrc  # or ~/.zshrc for zsh users
+```
+
+3. **Use expocli from anywhere:**
+```bash
+expocli                                    # Interactive mode
+expocli "SELECT name FROM ./data"          # Single query
+```
+
+The first run will automatically build the Docker image and compile expocli (~1-2 minutes). Subsequent runs are instant!
+
+👉 **See [INSTALLATION.md](INSTALLATION.md) for detailed installation instructions and troubleshooting.**
+
+---
+
+### Alternative: Using Docker Directly
 
 1. **Build the Docker container:**
 ```bash
