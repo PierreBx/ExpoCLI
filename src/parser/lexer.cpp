@@ -29,6 +29,14 @@ std::vector<Token> Lexer::tokenize() {
             tokens.emplace_back(TokenType::COMMA, ",", position_);
             advance();
         }
+        else if (current == '(') {
+            tokens.emplace_back(TokenType::LPAREN, "(", position_);
+            advance();
+        }
+        else if (current == ')') {
+            tokens.emplace_back(TokenType::RPAREN, ")", position_);
+            advance();
+        }
         // Comparison operators
         else if (current == '<') {
             advance();

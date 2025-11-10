@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y \
     git \
     wget \
     libpugixml-dev \
+    libreadline-dev \
     gdb \
     valgrind \
     && rm -rf /var/lib/apt/lists/*

@@ -31,6 +31,8 @@ enum class TokenType {
     GREATER_EQUAL,
     AND,
     OR,
+    LPAREN,
+    RPAREN,
     END_OF_INPUT,
     INVALID
 };

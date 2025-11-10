@@ -9,14 +9,17 @@ This tool provides a simple, SQL-like interface for querying XML data. It's desi
 ## Features (Phase 2)
 
 - **Interactive CLI Mode**: REPL interface for running multiple queries in a session
+- **Command History**: Navigate previous queries with UP/DOWN arrow keys (last 100 queries)
 - **Single Query Mode**: Execute one-off queries from command line
 - **SQL-like Query Syntax**: SELECT...FROM...WHERE...ORDER BY...LIMIT syntax
+- **Parenthesized Conditions**: Group conditions with parentheses for complex logic
 - **Logical Operators**: AND/OR support in WHERE clause with proper precedence
 - **Multiple File Support**: Query across all XML files in a directory
 - **Flexible Path Notation**: Use either dot (.) or slash (/) notation for XML paths
 - **Comparison Operators**: Support for =, !=, <, >, <=, >=
 - **ORDER BY**: Sort results numerically or alphabetically
 - **LIMIT**: Restrict number of results returned
+- **Multi-line Queries**: Semicolon-terminated queries support line breaks
 - **Docker Support**: Consistent build environment via Docker
 - **High Performance**: Built with pugixml for efficient XML parsing
 
@@ -30,6 +33,7 @@ This tool provides a simple, SQL-like interface for querying XML data. It's desi
 - C++17 compatible compiler (GCC 7+, Clang 5+)
 - CMake 3.15+
 - pugixml library
+- readline library (for command history support)
 
 ## Quick Start
 
@@ -340,6 +344,22 @@ These features are planned for Phase 2 and Phase 3.
 - XSD validation support
 - Index building for repeated queries
 
+## Upgrading
+
+### After Pulling New Updates
+
+If you've pulled new updates from the repository and encounter compilation errors related to missing headers (like `readline/readline.h`), you need to rebuild the Docker image:
+
+```bash
+# Force rebuild the Docker image
+docker compose build --no-cache
+
+# Or if using the installer, run it again
+./install.sh
+```
+
+The installer (`install.sh`) automatically rebuilds the binary with the latest code, but if you're using Docker directly, you must rebuild the image when dependencies change.
+
 ## Troubleshooting
 
 ### Docker Issues
@@ -355,6 +375,15 @@ sudo usermod -aG docker $USER
 ```bash
 # Use docker compose down to clean up
 docker compose down
+```
+
+**Problem:** Compilation error: `readline/readline.h: No such file or directory`
+```bash
+# This means the Docker image needs to be rebuilt
+docker compose build --no-cache
+
+# Then run install.sh again to recompile
+./install.sh
 ```
 
 ### Build Issues
