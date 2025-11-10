@@ -2,7 +2,7 @@
 #include <cctype>
 #include <algorithm>
 
-namespace xmlquery {
+namespace expocli {
 
 Lexer::Lexer(const std::string& input)
     : input_(input), position_(0) {}
@@ -162,4 +162,4 @@ TokenType Lexer::identifyKeyword(const std::string& word) const {
     return TokenType::IDENTIFIER;
 }
 
-} // namespace xmlquery
+} // namespace expocli

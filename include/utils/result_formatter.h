@@ -7,7 +7,7 @@
 #include <ostream>
 #include <iostream>
 
-namespace xmlquery {
+namespace expocli {
 
 class ResultFormatter {
 public:
@@ -21,6 +21,6 @@ public:
     static std::string formatAsText(const std::vector<ResultRow>& results);
 };
 
-} // namespace xmlquery
+} // namespace expocli
 
 #endif // RESULT_FORMATTER_H

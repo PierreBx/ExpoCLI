@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-namespace xmlquery {
+namespace expocli {
 
 // Represents a single result from XML traversal
 struct XmlResult {
@@ -76,6 +76,6 @@ private:
     );
 };
 
-} // namespace xmlquery
+} // namespace expocli
 
 #endif // XML_NAVIGATOR_H

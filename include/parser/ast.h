@@ -5,7 +5,7 @@
 #include <vector>
 #include <memory>
 
-namespace xmlquery {
+namespace expocli {
 
 // Token types for the lexer
 enum class TokenType {
@@ -97,6 +97,6 @@ struct Query {
     int limit = -1;                            // LIMIT value (Phase 2, -1 means no limit)
 };
 
-} // namespace xmlquery
+} // namespace expocli
 
 #endif // AST_H

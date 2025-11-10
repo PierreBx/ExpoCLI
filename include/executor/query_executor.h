@@ -7,7 +7,7 @@
 #include <string>
 #include <utility>
 
-namespace xmlquery {
+namespace expocli {
 
 // Result row (multiple fields) - using vector to preserve field order
 using ResultRow = std::vector<std::pair<std::string, std::string>>;
@@ -28,6 +28,6 @@ private:
     );
 };
 
-} // namespace xmlquery
+} // namespace expocli
 
 #endif // QUERY_EXECUTOR_H

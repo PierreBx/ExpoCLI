@@ -5,7 +5,7 @@
 #include <string>
 #include <memory>
 
-namespace xmlquery {
+namespace expocli {
 
 class XmlLoader {
 public:
@@ -16,6 +16,6 @@ public:
     static bool isXmlFile(const std::string& filepath);
 };
 
-} // namespace xmlquery
+} // namespace expocli
 
 #endif // XML_LOADER_H

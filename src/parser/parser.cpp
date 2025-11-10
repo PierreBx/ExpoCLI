@@ -1,7 +1,7 @@
 #include "parser/parser.h"
 #include <algorithm>
 
-namespace xmlquery {
+namespace expocli {
 
 Parser::Parser(const std::vector<Token>& tokens)
     : tokens_(tokens), current_(0) {}
@@ -300,4 +300,4 @@ void Parser::parseLimitClause(Query& query) {
     }
 }
 
-} // namespace xmlquery
+} // namespace expocli

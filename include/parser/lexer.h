@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-namespace xmlquery {
+namespace expocli {
 
 class Lexer {
 public:
@@ -31,6 +31,6 @@ private:
     TokenType identifyKeyword(const std::string& word) const;
 };
 
-} // namespace xmlquery
+} // namespace expocli
 
 #endif // LEXER_H

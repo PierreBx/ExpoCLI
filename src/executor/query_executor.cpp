@@ -4,7 +4,7 @@
 #include <iostream>
 #include <algorithm>
 
-namespace xmlquery {
+namespace expocli {
 
 // Helper to extract a FieldPath from any WhereExpr (gets the first condition's field)
 static FieldPath extractFieldPathFromWhere(const WhereExpr* expr) {
@@ -256,4 +256,4 @@ std::vector<ResultRow> QueryExecutor::processFile(
     return results;
 }
 
-} // namespace xmlquery
+} // namespace expocli

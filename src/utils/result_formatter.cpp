@@ -2,7 +2,7 @@
 #include <iostream>
 #include <sstream>
 
-namespace xmlquery {
+namespace expocli {
 
 void ResultFormatter::print(const std::vector<ResultRow>& results, std::ostream& out) {
     out << formatAsText(results);
@@ -29,9 +29,13 @@ std::string ResultFormatter::formatAsText(const std::vector<ResultRow>& results)
         oss << "\n";
     }
 
-    oss << "\n" << results.size() << " row(s) returned.\n";
+    if (results.size() == 1) {
+        oss << "\n1 row returned.\n";
+    } else {
+        oss << "\n" << results.size() << " rows returned.\n";
+    }
 
     return oss.str();
 }
 
-} // namespace xmlquery
+} // namespace expocli

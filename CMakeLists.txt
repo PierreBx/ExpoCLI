@@ -38,12 +38,12 @@ set(SOURCES
 )
 
 # Create executable
-add_executable(xmlquery ${SOURCES} ${pugixml_SOURCE_DIR}/src/pugixml.cpp)
+add_executable(expocli ${SOURCES} ${pugixml_SOURCE_DIR}/src/pugixml.cpp)
 
 # Link libraries (pugixml is header-only style, included directly)
 
 # Install target
-install(TARGETS xmlquery DESTINATION bin)
+install(TARGETS expocli DESTINATION bin)
 
 # Print configuration
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")

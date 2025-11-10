@@ -1,7 +1,7 @@
 #include "utils/xml_loader.h"
 #include <algorithm>
 
-namespace xmlquery {
+namespace expocli {
 
 std::unique_ptr<pugi::xml_document> XmlLoader::load(const std::string& filepath) {
     auto doc = std::make_unique<pugi::xml_document>();
@@ -26,4 +26,4 @@ bool XmlLoader::isXmlFile(const std::string& filepath) {
     return ext == ".xml";
 }
 
-} // namespace xmlquery
+} // namespace expocli

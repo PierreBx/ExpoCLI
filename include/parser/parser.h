@@ -6,7 +6,7 @@
 #include <memory>
 #include <stdexcept>
 
-namespace xmlquery {
+namespace expocli {
 
 class ParseError : public std::runtime_error {
 public:
@@ -46,6 +46,6 @@ private:
     void parseLimitClause(Query& query);
 };
 
-} // namespace xmlquery
+} // namespace expocli
 
 #endif // PARSER_H

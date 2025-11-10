@@ -6,12 +6,17 @@ A high-performance command-line tool for querying XML files using SQL-like synta
 
 This tool provides a simple, SQL-like interface for querying XML data. It's designed for users familiar with SQL who need to extract information from multiple large XML files without learning complex tools like xmllint or XPath.
 
-## Features (Phase 1 - MVP)
+## Features (Phase 2)
 
-- **SQL-like Query Syntax**: Familiar SELECT...FROM...WHERE syntax
+- **Interactive CLI Mode**: REPL interface for running multiple queries in a session
+- **Single Query Mode**: Execute one-off queries from command line
+- **SQL-like Query Syntax**: SELECT...FROM...WHERE...ORDER BY...LIMIT syntax
+- **Logical Operators**: AND/OR support in WHERE clause with proper precedence
 - **Multiple File Support**: Query across all XML files in a directory
 - **Flexible Path Notation**: Use either dot (.) or slash (/) notation for XML paths
 - **Comparison Operators**: Support for =, !=, <, >, <=, >=
+- **ORDER BY**: Sort results numerically or alphabetically
+- **LIMIT**: Restrict number of results returned
 - **Docker Support**: Consistent build environment via Docker
 - **High Performance**: Built with pugixml for efficient XML parsing
 
@@ -28,7 +33,33 @@ This tool provides a simple, SQL-like interface for querying XML data. It's desi
 
 ## Quick Start
 
-### Using Docker
+### Recommended: Transparent Local Installation
+
+Use expocli as a native command on your machine (it runs in Docker transparently):
+
+1. **Run the installer:**
+```bash
+./install.sh
+```
+
+2. **Reload your shell:**
+```bash
+source ~/.bashrc  # or ~/.zshrc for zsh users
+```
+
+3. **Use expocli from anywhere:**
+```bash
+expocli                                    # Interactive mode
+expocli "SELECT name FROM ./data"          # Single query
+```
+
+The first run will automatically build the Docker image and compile expocli (~1-2 minutes). Subsequent runs are instant!
+
+👉 **See [INSTALLATION.md](INSTALLATION.md) for detailed installation instructions and troubleshooting.**
+
+---
+
+### Alternative: Using Docker Directly
 
 1. **Build the Docker container:**
 ```bash
@@ -49,7 +80,7 @@ make
 
 4. **Run queries:**
 ```bash
-./xmlquery "SELECT breakfast_menu/food/name FROM /app/examples WHERE breakfast_menu/food/calories < 500"
+./expocli "SELECT breakfast_menu/food/name FROM /app/examples WHERE breakfast_menu/food/calories < 500"
 ```
 
 ### Local Build
@@ -71,8 +102,69 @@ make
 ```
 
 3. **Run queries:**
+
+**Interactive Mode** (recommended for multiple queries):
 ```bash
-./xmlquery "SELECT breakfast_menu/food/name FROM ../examples WHERE breakfast_menu/food/calories < 500"
+./expocli
+```
+
+**Single Query Mode**:
+```bash
+./expocli "SELECT breakfast_menu/food/name FROM ../examples WHERE breakfast_menu/food/calories < 500"
+```
+
+## Usage Modes
+
+### Interactive Mode (REPL)
+
+Start interactive mode by running `expocli` without arguments:
+
+```bash
+./expocli
+```
+
+You'll get a prompt where you can enter multiple queries:
+
+```
+XML Query CLI - Phase 2 (Interactive Mode)
+Type 'help' for usage information, 'exit' or 'quit' to exit.
+Enter SQL-like queries to search XML files.
+
+expocli> SELECT breakfast_menu/food/name FROM /app/examples WHERE breakfast_menu/food/calories < 700
+Belgian Waffles
+French Toast
+
+2 row(s) returned.
+
+expocli> SELECT bookstore/book/title FROM /app/examples/books.xml ORDER BY price LIMIT 2
+Harry Potter
+Everyday Italian
+
+2 row(s) returned.
+
+expocli> exit
+Bye!
+```
+
+**Interactive Commands:**
+- `help`, `\h`, `\?` - Show help message
+- `exit`, `quit`, `\q` - Exit the program
+- `\c`, `clear` - Clear screen
+- `\` at end of line - Continue query on next line (multi-line queries)
+
+**Multi-line Query Example:**
+```
+expocli> SELECT breakfast_menu/food/name \
+      ... FROM /app/examples \
+      ... WHERE breakfast_menu/food/calories < 700
+```
+
+### Single Query Mode
+
+Execute a single query from the command line:
+
+```bash
+./expocli "SELECT name FROM /path/to/files WHERE price < 30"
 ```
 
 ## Query Syntax
@@ -111,7 +203,7 @@ Both notations work identically.
 ### Example 1: Basic Query
 **Query:**
 ```bash
-./xmlquery "SELECT breakfast_menu/food/name FROM ./examples"
+./expocli "SELECT breakfast_menu/food/name FROM ./examples"
 ```
 
 **Output:**
@@ -128,7 +220,7 @@ Homestyle Breakfast
 ### Example 2: Query with WHERE Clause
 **Query:**
 ```bash
-./xmlquery "SELECT breakfast_menu/food/name FROM ./examples WHERE breakfast_menu/food/calories < 500"
+./expocli "SELECT breakfast_menu/food/name FROM ./examples WHERE breakfast_menu/food/calories < 500"
 ```
 
 **Output:**
@@ -141,7 +233,7 @@ Homestyle Breakfast
 ### Example 3: Multiple Fields with Filename
 **Query:**
 ```bash
-./xmlquery "SELECT FILE_NAME,breakfast_menu/food/name,breakfast_menu/food/price FROM ./examples"
+./expocli "SELECT FILE_NAME,breakfast_menu/food/name,breakfast_menu/food/price FROM ./examples"
 ```
 
 **Output:**
@@ -158,7 +250,7 @@ test.xml | Homestyle Breakfast | $6.95
 ### Example 4: Query Across Multiple Files
 **Query:**
 ```bash
-./xmlquery "SELECT FILE_NAME,lunch_menu/food/name FROM ./examples WHERE lunch_menu/food/calories < 500"
+./expocli "SELECT FILE_NAME,lunch_menu/food/name FROM ./examples WHERE lunch_menu/food/calories < 500"
 ```
 
 **Output:**

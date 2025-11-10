@@ -2,7 +2,7 @@
 #include <stdexcept>
 #include <typeinfo>
 
-namespace xmlquery {
+namespace expocli {
 
 std::vector<XmlResult> XmlNavigator::extractValues(
     const pugi::xml_document& doc,
@@ -215,4 +215,4 @@ bool XmlNavigator::compareValues(
     return false;
 }
 
-} // namespace xmlquery
+} // namespace expocli
