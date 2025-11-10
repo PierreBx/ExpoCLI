@@ -1,49 +1,36 @@
 # Known Issues - Phase 1 MVP
 
 ## Working Features
-- ✅ Basic SELECT queries with single field
+- ✅ Basic SELECT queries with single and multiple fields
+- ✅ WHERE clause with all comparison operators (=, !=, <, >, <=, >=)
+- ✅ Numeric and string comparisons in WHERE clause
 - ✅ File and directory scanning
 - ✅ FILE_NAME special field
 - ✅ Lexer and parser for SQL-like syntax
 - ✅ pugixml integration via CMake FetchContent
 - ✅ Help command
+- ✅ Cross-file queries (multiple XML files in directory)
 
 ## Issues to Fix
 
-### 1. WHERE Clause Not Working (Priority: HIGH)
-**Status:** Not functional
-**Description:** WHERE clause queries return no results even when matches should exist.
+### 1. Multi-Field Query Column Ordering Issue (Priority: MEDIUM)
+**Status:** Data correct, ordering wrong
+**Description:** When selecting multiple fields, columns appear in alphabetical order instead of the order specified in the query.
 
 **Example:**
 ```bash
-./xmlquery 'SELECT breakfast_menu/food/name FROM "examples" WHERE breakfast_menu/food/calories < 700'
-# Expected: Belgian Waffles, French Toast
-# Actual: No results found
+./xmlquery 'SELECT breakfast_menu/food/name,breakfast_menu/food/calories FROM "examples"'
+# Output: calories | name (alphabetically sorted)
+# Expected: name | calories (as specified in query)
 ```
 
-**Root Cause:** The query executor's logic for navigating and evaluating WHERE conditions needs refactoring. The issue is in how we calculate the parent path and pass the node context to evaluateCondition.
+**Root Cause:** Using `std::map<std::string, std::string>` for ResultRow, which orders keys alphabetically, not by insertion order.
 
-**Fix Required:** Refactor `QueryExecutor::processFile()` to properly extract the relative path for condition evaluation.
+**Fix Required:** Replace ResultRow with `std::vector<std::pair<std::string, std::string>>` or use a custom ordered map structure that preserves insertion order.
 
 ---
 
-### 2. Multi-Field Query Field Ordering Issue (Priority: MEDIUM)
-**Status:** Partially working
-**Description:** When selecting multiple fields, the output order is inconsistent and fields can appear misaligned.
-
-**Example:**
-```bash
-./xmlquery 'SELECT FILE_NAME,breakfast_menu/food/name,breakfast_menu/food/calories FROM "examples"'
-# Fields appear in wrong order or misaligned
-```
-
-**Root Cause:** The result row construction logic in `processFile()` doesn't properly synchronize multiple field results across nodes.
-
-**Fix Required:** Improve the cross-product logic or restructure to process nodes first, then extract all fields from each node.
-
----
-
-### 3. Path Without Quotes Parsing Issue (Priority: LOW)
+### 2. Path Without Quotes Parsing Issue (Priority: LOW)
 **Status:** Workaround available
 **Description:** Paths in FROM clause must be quoted. Paths like `../examples` or `/home/user/data` fail without quotes.
 
@@ -61,7 +48,7 @@
 
 ---
 
-### 4. Mixed Root Elements Across Files (Priority: LOW)
+### 3. Mixed Root Elements Across Files (Priority: LOW)
 **Status:** May cause issues
 **Description:** If XML files in a directory have different root elements, queries may produce unexpected results.
 
@@ -80,46 +67,50 @@ Querying for `breakfast_menu/food/name` will return empty for `lunch.xml`.
 ### Completed Tests
 - [x] Help command
 - [x] Basic SELECT single field
+- [x] Multi-field SELECT queries
 - [x] Single file queries
 - [x] Directory scanning
 - [x] FILE_NAME field
 - [x] Build system (CMake + FetchContent)
-
-### Failed Tests
-- [ ] WHERE clause with numeric comparison
-- [ ] WHERE clause with string comparison
-- [ ] Multi-field SELECT queries
+- [x] WHERE clause with numeric comparison (<, >, =, !=, <=, >=)
+- [x] WHERE clause with string comparison (=)
+- [x] Cross-file queries (breakfast_menu vs lunch_menu)
 
 ### Not Yet Tested
-- [ ] Comparison operators: !=, >, <=, >=
-- [ ] String comparisons in WHERE
 - [ ] Large file performance
-- [ ] Many files in directory
-- [ ] Deeply nested XML paths
+- [ ] Many files in directory (>10 files)
+- [ ] Deeply nested XML paths (>5 levels)
 - [ ] XML with attributes
 - [ ] Malformed XML handling
+- [ ] Edge cases: empty values, missing fields
+- [ ] Concurrent file access
 
 ---
 
 ## Recommended Next Steps
 
-1. **Fix WHERE clause logic** (Critical for MVP)
-   - Refactor `QueryExecutor::processFile()`
-   - Add unit tests for WHERE evaluation
+1. **Fix column ordering** (Medium priority for usability)
+   - Replace `std::map` with ordered data structure
+   - Preserve user-specified field order in output
 
-2. **Fix multi-field alignment** (Important for usability)
-   - Restructure result collection to node-first approach
+2. **Add comprehensive error messages**
+   - Better parsing errors with line/column information
+   - Clearer XML loading errors
+   - File not found errors with suggestions
 
-3. **Add comprehensive error messages**
-   - Better parsing errors
-   - XML loading errors
-   - File not found errors
-
-4. **Add test suite**
+3. **Add test suite**
    - Unit tests for lexer
    - Unit tests for parser
    - Integration tests for queries
+   - Performance benchmarks
 
-5. **Documentation updates**
+4. **Documentation updates**
    - Update README with "paths must be quoted" requirement
-   - Add troubleshooting section
+   - Add more query examples
+   - Document limitations and edge cases
+
+5. **Phase 2 Features** (After MVP is stable)
+   - Multiple WHERE conditions with AND/OR
+   - Wildcard support in SELECT
+   - ORDER BY and LIMIT clauses
+   - Better error messages

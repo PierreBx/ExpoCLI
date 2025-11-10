@@ -50,6 +50,20 @@ bool XmlNavigator::evaluateCondition(
     return compareValues(nodeValue, condition.value, condition.op, condition.is_numeric);
 }
 
+bool XmlNavigator::evaluateCondition(
+    const pugi::xml_node& node,
+    const WhereCondition& condition,
+    size_t parentDepth
+) {
+    std::string nodeValue = getNodeValueRelative(node, condition.field, parentDepth);
+
+    if (nodeValue.empty()) {
+        return false;
+    }
+
+    return compareValues(nodeValue, condition.value, condition.op, condition.is_numeric);
+}
+
 void XmlNavigator::findNodes(
     const pugi::xml_node& node,
     const std::vector<std::string>& path,
@@ -89,6 +103,28 @@ std::string XmlNavigator::getNodeValue(
 
     for (const auto& component : field.components) {
         current = current.child(component.c_str());
+        if (!current) {
+            return "";
+        }
+    }
+
+    return current.child_value();
+}
+
+std::string XmlNavigator::getNodeValueRelative(
+    const pugi::xml_node& node,
+    const FieldPath& field,
+    size_t offset
+) {
+    if (field.components.empty() || offset >= field.components.size()) {
+        return "";
+    }
+
+    // Navigate using only the components after 'offset'
+    pugi::xml_node current = node;
+
+    for (size_t i = offset; i < field.components.size(); ++i) {
+        current = current.child(field.components[i].c_str());
         if (!current) {
             return "";
         }

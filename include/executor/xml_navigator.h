@@ -29,6 +29,14 @@ public:
         const WhereCondition& condition
     );
 
+    // Evaluate WHERE condition on a node with parent depth offset
+    // parentDepth: number of path components already traversed to reach this node
+    static bool evaluateCondition(
+        const pugi::xml_node& node,
+        const WhereCondition& condition,
+        size_t parentDepth
+    );
+
     // Helper to navigate nested paths
     static void findNodes(
         const pugi::xml_node& node,
@@ -43,6 +51,13 @@ private:
     static std::string getNodeValue(
         const pugi::xml_node& node,
         const FieldPath& field
+    );
+
+    // Get value from node using relative path (skipping first 'offset' components)
+    static std::string getNodeValueRelative(
+        const pugi::xml_node& node,
+        const FieldPath& field,
+        size_t offset
     );
 
     // Compare values

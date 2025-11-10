@@ -133,8 +133,9 @@ std::vector<ResultRow> QueryExecutor::processFile(
         XmlNavigator::findNodes(*doc, parentPath, 0, candidateNodes);
 
         // Filter nodes based on WHERE condition
+        // Pass parentPath.size() so evaluateCondition uses relative path navigation
         for (const auto& node : candidateNodes) {
-            if (XmlNavigator::evaluateCondition(node, *query.where)) {
+            if (XmlNavigator::evaluateCondition(node, *query.where, parentPath.size())) {
                 // Extract select fields from this node
                 ResultRow row;
 
@@ -148,10 +149,28 @@ std::vector<ResultRow> QueryExecutor::processFile(
                     } else {
                         fieldName = field.components.back();
 
-                        // Navigate from the candidate node to the select field
+                        // Calculate overlap between field path and parent path
+                        // to use relative navigation from the candidate node
+                        size_t skipComponents = 0;
+
+                        // Check if field path starts with parent path
+                        if (field.components.size() >= parentPath.size()) {
+                            bool matches = true;
+                            for (size_t i = 0; i < parentPath.size(); ++i) {
+                                if (field.components[i] != parentPath[i]) {
+                                    matches = false;
+                                    break;
+                                }
+                            }
+                            if (matches) {
+                                skipComponents = parentPath.size();
+                            }
+                        }
+
+                        // Navigate from the candidate node using relative path
                         pugi::xml_node targetNode = node;
-                        for (const auto& component : field.components) {
-                            targetNode = targetNode.child(component.c_str());
+                        for (size_t i = skipComponents; i < field.components.size(); ++i) {
+                            targetNode = targetNode.child(field.components[i].c_str());
                             if (!targetNode) break;
                         }
 
