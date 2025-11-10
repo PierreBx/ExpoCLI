@@ -6,16 +6,24 @@
 #include <string>
 
 void printUsage(const char* programName) {
-    std::cout << "XML Query CLI - Phase 1 (MVP)\n";
+    std::cout << "XML Query CLI - Phase 2\n";
     std::cout << "Usage: " << programName << " [query]\n\n";
     std::cout << "Query Syntax:\n";
-    std::cout << "  SELECT <field>[,<field>...] FROM <path> [WHERE <condition>]\n\n";
+    std::cout << "  SELECT <field>[,<field>...] FROM <path>\n";
+    std::cout << "  [WHERE <condition> [AND|OR <condition>...]]\n";
+    std::cout << "  [ORDER BY <field>]\n";
+    std::cout << "  [LIMIT <number>]\n\n";
     std::cout << "Examples:\n";
     std::cout << "  " << programName << " \"SELECT name FROM ./data WHERE calories < 500\"\n";
-    std::cout << "  " << programName << " \"SELECT FILE_NAME,breakfast_menu/food/name FROM ./data\"\n\n";
-    std::cout << "Field paths can use '.' or '/' as separators (e.g., food.name or food/name)\n";
-    std::cout << "Special field: FILE_NAME returns the name of the XML file\n\n";
-    std::cout << "Supported operators: =, !=, <, >, <=, >=\n";
+    std::cout << "  " << programName << " \"SELECT name FROM ./data WHERE year > 2000 AND price < 30\"\n";
+    std::cout << "  " << programName << " \"SELECT name,price FROM ./data ORDER BY price LIMIT 5\"\n\n";
+    std::cout << "Features:\n";
+    std::cout << "  - Field paths can use '.' or '/' as separators (e.g., food.name or food/name)\n";
+    std::cout << "  - Special field: FILE_NAME returns the name of the XML file\n";
+    std::cout << "  - Comparison operators: =, !=, <, >, <=, >=\n";
+    std::cout << "  - Logical operators: AND, OR (AND has higher precedence)\n";
+    std::cout << "  - ORDER BY: Sort results by field (numeric or alphabetic)\n";
+    std::cout << "  - LIMIT: Restrict number of results returned\n";
 }
 
 int main(int argc, char* argv[]) {

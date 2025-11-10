@@ -23,6 +23,13 @@ public:
         const FieldPath& field
     );
 
+    // Evaluate WHERE expression (condition or logical combination)
+    static bool evaluateWhereExpr(
+        const pugi::xml_node& node,
+        const WhereExpr* expr,
+        size_t parentDepth = 0
+    );
+
     // Evaluate WHERE condition on a specific node
     static bool evaluateCondition(
         const pugi::xml_node& node,

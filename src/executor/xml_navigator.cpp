@@ -1,5 +1,6 @@
 #include "executor/xml_navigator.h"
 #include <stdexcept>
+#include <typeinfo>
 
 namespace xmlquery {
 
@@ -35,6 +36,38 @@ std::vector<XmlResult> XmlNavigator::extractValues(
     }
 
     return results;
+}
+
+bool XmlNavigator::evaluateWhereExpr(
+    const pugi::xml_node& node,
+    const WhereExpr* expr,
+    size_t parentDepth
+) {
+    if (!expr) {
+        return true; // No condition means all pass
+    }
+
+    // Try to cast to WhereCondition
+    if (const auto* condition = dynamic_cast<const WhereCondition*>(expr)) {
+        return evaluateCondition(node, *condition, parentDepth);
+    }
+
+    // Try to cast to WhereLogical
+    if (const auto* logical = dynamic_cast<const WhereLogical*>(expr)) {
+        bool leftResult = evaluateWhereExpr(node, logical->left.get(), parentDepth);
+        bool rightResult = evaluateWhereExpr(node, logical->right.get(), parentDepth);
+
+        switch (logical->op) {
+            case LogicalOp::AND:
+                return leftResult && rightResult;
+            case LogicalOp::OR:
+                return leftResult || rightResult;
+            default:
+                return false;
+        }
+    }
+
+    return false; // Unknown expression type
 }
 
 bool XmlNavigator::evaluateCondition(

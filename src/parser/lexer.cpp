@@ -153,6 +153,11 @@ TokenType Lexer::identifyKeyword(const std::string& word) const {
     if (upper == "WHERE") return TokenType::WHERE;
     if (upper == "AND") return TokenType::AND;
     if (upper == "OR") return TokenType::OR;
+    if (upper == "ORDER") return TokenType::ORDER;
+    if (upper == "BY") return TokenType::BY;
+    if (upper == "LIMIT") return TokenType::LIMIT;
+    if (upper == "ASC") return TokenType::ASC;
+    if (upper == "DESC") return TokenType::DESC;
 
     return TokenType::IDENTIFIER;
 }

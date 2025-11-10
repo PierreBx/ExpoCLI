@@ -12,6 +12,11 @@ enum class TokenType {
     SELECT,
     FROM,
     WHERE,
+    ORDER,
+    BY,
+    LIMIT,
+    ASC,
+    DESC,
     IDENTIFIER,
     STRING_LITERAL,
     NUMBER,
@@ -56,19 +61,40 @@ struct FieldPath {
     bool include_filename = false;       // Special case for FILE_NAME
 };
 
-// AST Node for WHERE condition
-struct WhereCondition {
+// Logical operators for combining conditions
+enum class LogicalOp {
+    NONE,  // Single condition
+    AND,
+    OR
+};
+
+// Base class for WHERE expressions
+struct WhereExpr {
+    virtual ~WhereExpr() = default;
+};
+
+// Simple comparison condition
+struct WhereCondition : public WhereExpr {
     FieldPath field;
     ComparisonOp op;
     std::string value;
     bool is_numeric;
 };
 
+// Logical combination of conditions (AND/OR)
+struct WhereLogical : public WhereExpr {
+    LogicalOp op;
+    std::unique_ptr<WhereExpr> left;
+    std::unique_ptr<WhereExpr> right;
+};
+
 // Main Query AST
 struct Query {
-    std::vector<FieldPath> select_fields;  // Fields to select
-    std::string from_path;                  // Directory path
-    std::unique_ptr<WhereCondition> where; // Optional WHERE clause
+    std::vector<FieldPath> select_fields;     // Fields to select
+    std::string from_path;                     // Directory path
+    std::unique_ptr<WhereExpr> where;          // Optional WHERE clause (can be condition or logical)
+    std::vector<std::string> order_by_fields;  // ORDER BY fields (Phase 2)
+    int limit = -1;                            // LIMIT value (Phase 2, -1 means no limit)
 };
 
 } // namespace xmlquery

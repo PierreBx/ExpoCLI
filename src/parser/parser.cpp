@@ -33,6 +33,16 @@ std::unique_ptr<Query> Parser::parse() {
         query->where = parseWhereClause();
     }
 
+    // Parse optional ORDER BY clause
+    if (check(TokenType::ORDER)) {
+        parseOrderByClause(*query);
+    }
+
+    // Parse optional LIMIT clause
+    if (check(TokenType::LIMIT)) {
+        parseLimitClause(*query);
+    }
+
     // Ensure we're at the end
     if (!isAtEnd() && peek().type != TokenType::END_OF_INPUT) {
         throw ParseError("Unexpected tokens after query");
@@ -109,7 +119,45 @@ FieldPath Parser::parseFieldPath() {
     return field;
 }
 
-std::unique_ptr<WhereCondition> Parser::parseWhereClause() {
+// Parse WHERE clause (entry point)
+std::unique_ptr<WhereExpr> Parser::parseWhereClause() {
+    return parseWhereExpression();
+}
+
+// Parse OR-level expression (lowest precedence)
+std::unique_ptr<WhereExpr> Parser::parseWhereExpression() {
+    return parseWhereOr();
+}
+
+std::unique_ptr<WhereExpr> Parser::parseWhereOr() {
+    auto left = parseWhereAnd();
+
+    while (match(TokenType::OR)) {
+        auto logical = std::make_unique<WhereLogical>();
+        logical->op = LogicalOp::OR;
+        logical->left = std::move(left);
+        logical->right = parseWhereAnd();
+        left = std::move(logical);
+    }
+
+    return left;
+}
+
+std::unique_ptr<WhereExpr> Parser::parseWhereAnd() {
+    auto left = parseWhereCondition();
+
+    while (match(TokenType::AND)) {
+        auto logical = std::make_unique<WhereLogical>();
+        logical->op = LogicalOp::AND;
+        logical->left = std::move(left);
+        logical->right = parseWhereCondition();
+        left = std::move(logical);
+    }
+
+    return left;
+}
+
+std::unique_ptr<WhereExpr> Parser::parseWhereCondition() {
     auto condition = std::make_unique<WhereCondition>();
 
     // Parse field path
@@ -132,9 +180,6 @@ std::unique_ptr<WhereCondition> Parser::parseWhereClause() {
     else {
         throw ParseError("Expected value in WHERE clause");
     }
-
-    // Note: For MVP, we only support single WHERE condition
-    // Future: Add AND/OR support
 
     return condition;
 }
@@ -163,6 +208,58 @@ ComparisonOp Parser::parseComparisonOp() {
             return ComparisonOp::GREATER_EQUAL;
         default:
             throw ParseError("Expected comparison operator");
+    }
+}
+
+void Parser::parseOrderByClause(Query& query) {
+    expect(TokenType::ORDER, "Expected ORDER keyword");
+    expect(TokenType::BY, "Expected BY keyword after ORDER");
+
+    // Parse field to order by
+    if (peek().type != TokenType::IDENTIFIER) {
+        throw ParseError("Expected field name after ORDER BY");
+    }
+
+    std::string fieldName = advance().value;
+    query.order_by_fields.push_back(fieldName);
+
+    // Skip optional ASC/DESC for now (default is ASC)
+    if (match(TokenType::ASC) || match(TokenType::DESC)) {
+        // For Phase 2, we'll just store the field name
+        // Future enhancement: store sort direction
+    }
+
+    // Support multiple ORDER BY fields separated by commas
+    while (match(TokenType::COMMA)) {
+        if (peek().type != TokenType::IDENTIFIER) {
+            throw ParseError("Expected field name after comma in ORDER BY");
+        }
+        fieldName = advance().value;
+        query.order_by_fields.push_back(fieldName);
+
+        // Skip optional ASC/DESC
+        if (match(TokenType::ASC) || match(TokenType::DESC)) {
+            // Future enhancement: store sort direction
+        }
+    }
+}
+
+void Parser::parseLimitClause(Query& query) {
+    expect(TokenType::LIMIT, "Expected LIMIT keyword");
+
+    if (peek().type != TokenType::NUMBER) {
+        throw ParseError("Expected number after LIMIT");
+    }
+
+    try {
+        query.limit = std::stoi(advance().value);
+        if (query.limit < 0) {
+            throw ParseError("LIMIT value must be non-negative");
+        }
+    } catch (const std::invalid_argument&) {
+        throw ParseError("Invalid LIMIT value");
+    } catch (const std::out_of_range&) {
+        throw ParseError("LIMIT value out of range");
     }
 }
 

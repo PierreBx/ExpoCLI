@@ -2,8 +2,28 @@
 #include "utils/xml_loader.h"
 #include <filesystem>
 #include <iostream>
+#include <algorithm>
 
 namespace xmlquery {
+
+// Helper to extract a FieldPath from any WhereExpr (gets the first condition's field)
+static FieldPath extractFieldPathFromWhere(const WhereExpr* expr) {
+    if (!expr) {
+        return FieldPath();
+    }
+
+    // If it's a simple condition, return its field
+    if (const auto* condition = dynamic_cast<const WhereCondition*>(expr)) {
+        return condition->field;
+    }
+
+    // If it's a logical expression, recursively get from left side
+    if (const auto* logical = dynamic_cast<const WhereLogical*>(expr)) {
+        return extractFieldPathFromWhere(logical->left.get());
+    }
+
+    return FieldPath();
+}
 
 std::vector<ResultRow> QueryExecutor::execute(const Query& query) {
     std::vector<ResultRow> allResults;
@@ -24,6 +44,47 @@ std::vector<ResultRow> QueryExecutor::execute(const Query& query) {
         } catch (const std::exception& e) {
             std::cerr << "Error processing file " << filepath << ": " << e.what() << std::endl;
         }
+    }
+
+    // Apply ORDER BY if specified
+    if (!query.order_by_fields.empty()) {
+        const std::string& orderField = query.order_by_fields[0]; // For Phase 2, support first field only
+
+        std::sort(allResults.begin(), allResults.end(),
+            [&orderField](const ResultRow& a, const ResultRow& b) {
+                // Find the field in both rows
+                std::string aValue, bValue;
+
+                for (const auto& [field, value] : a) {
+                    if (field == orderField) {
+                        aValue = value;
+                        break;
+                    }
+                }
+
+                for (const auto& [field, value] : b) {
+                    if (field == orderField) {
+                        bValue = value;
+                        break;
+                    }
+                }
+
+                // Try numeric comparison first
+                try {
+                    double aNum = std::stod(aValue);
+                    double bNum = std::stod(bValue);
+                    return aNum < bNum;
+                } catch (...) {
+                    // Fall back to string comparison
+                    return aValue < bValue;
+                }
+            }
+        );
+    }
+
+    // Apply LIMIT if specified
+    if (query.limit >= 0 && static_cast<size_t>(query.limit) < allResults.size()) {
+        allResults.resize(query.limit);
     }
 
     return allResults;
@@ -97,6 +158,8 @@ std::vector<ResultRow> QueryExecutor::processFile(
                 const auto& fr = fieldResults[fieldIdx];
 
                 std::string fieldName;
+                std::string fieldValue;
+
                 if (field.include_filename) {
                     fieldName = "FILE_NAME";
                 } else {
@@ -104,10 +167,12 @@ std::vector<ResultRow> QueryExecutor::processFile(
                 }
 
                 if (i < fr.size()) {
-                    row[fieldName] = fr[i].value;
+                    fieldValue = fr[i].value;
                 } else {
-                    row[fieldName] = "";
+                    fieldValue = "";
                 }
+
+                row.push_back({fieldName, fieldValue});
             }
             results.push_back(row);
         }
@@ -116,7 +181,8 @@ std::vector<ResultRow> QueryExecutor::processFile(
         // We need to find nodes that match the WHERE condition
 
         // Get the root path for traversal (parent path of WHERE field)
-        const auto& whereField = query.where->field;
+        // Extract field from the first condition in the WHERE expression tree
+        FieldPath whereField = extractFieldPathFromWhere(query.where.get());
 
         if (whereField.components.size() < 2) {
             // Simple case: condition on root-level elements
@@ -132,10 +198,10 @@ std::vector<ResultRow> QueryExecutor::processFile(
         std::vector<pugi::xml_node> candidateNodes;
         XmlNavigator::findNodes(*doc, parentPath, 0, candidateNodes);
 
-        // Filter nodes based on WHERE condition
-        // Pass parentPath.size() so evaluateCondition uses relative path navigation
+        // Filter nodes based on WHERE expression
+        // Pass parentPath.size() so evaluation uses relative path navigation
         for (const auto& node : candidateNodes) {
-            if (XmlNavigator::evaluateCondition(node, *query.where, parentPath.size())) {
+            if (XmlNavigator::evaluateWhereExpr(node, query.where.get(), parentPath.size())) {
                 // Extract select fields from this node
                 ResultRow row;
 
@@ -179,7 +245,7 @@ std::vector<ResultRow> QueryExecutor::processFile(
                         }
                     }
 
-                    row[fieldName] = value;
+                    row.push_back({fieldName, value});
                 }
 
                 results.push_back(row);

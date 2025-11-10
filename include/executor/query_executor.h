@@ -5,12 +5,12 @@
 #include "executor/xml_navigator.h"
 #include <vector>
 #include <string>
-#include <map>
+#include <utility>
 
 namespace xmlquery {
 
-// Result row (multiple fields)
-using ResultRow = std::map<std::string, std::string>;
+// Result row (multiple fields) - using vector to preserve field order
+using ResultRow = std::vector<std::pair<std::string, std::string>>;
 
 class QueryExecutor {
 public:
