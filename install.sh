@@ -81,7 +81,12 @@ echo ""
 chmod +x "${WRAPPER_SCRIPT}"
 
 # Force rebuild of the binary to ensure latest code is compiled
-echo "Forcing clean rebuild of expocli..."
+echo ""
+echo -e "${BLUE}═══════════════════════════════════════${NC}"
+echo -e "${BLUE}  Docker Build & Compilation Process  ${NC}"
+echo -e "${BLUE}═══════════════════════════════════════${NC}"
+echo ""
+
 cd "${SCRIPT_DIR}"
 
 # Check if Docker is available
@@ -89,20 +94,34 @@ if ! command -v docker &> /dev/null; then
     echo -e "${YELLOW}⚠${NC}  Docker not found - skipping rebuild"
     echo "    The binary will be compiled on first run"
 else
-    # Build Docker image if needed
-    if ! docker compose run --rm --no-TTY xml-query-cli true 2>/dev/null; then
-        echo "Building Docker image..."
-        docker compose build
+    # Step 1: Stop any running containers
+    echo -e "${BLUE}[1/4]${NC} Stopping any running containers..."
+    CONTAINER_NAME="xml-query-dev"
+    if docker ps -q -f name="${CONTAINER_NAME}" | grep -q .; then
+        docker compose down 2>/dev/null || true
+        echo -e "${GREEN}✓${NC} Stopped running container"
+    else
+        echo -e "${GREEN}✓${NC} No running containers to stop"
     fi
 
-    # Force clean rebuild by removing old build directory
-    echo "Cleaning old build..."
-    docker compose run --rm --no-TTY xml-query-cli bash -c "rm -rf /app/build" 2>/dev/null || true
+    # Step 2: Rebuild Docker image
+    echo ""
+    echo -e "${BLUE}[2/4]${NC} Rebuilding Docker image with latest dependencies..."
+    echo "      (This includes readline library and other dependencies)"
+    docker compose build --no-cache
+    echo -e "${GREEN}✓${NC} Docker image rebuilt successfully"
 
-    # Rebuild the binary
-    echo "Compiling expocli with latest code..."
+    # Step 3: Clean old build directory
+    echo ""
+    echo -e "${BLUE}[3/4]${NC} Cleaning old build artifacts..."
+    docker compose run --rm --no-TTY xml-query-cli bash -c "rm -rf /app/build" 2>/dev/null || true
+    echo -e "${GREEN}✓${NC} Build directory cleaned"
+
+    # Step 4: Compile the binary with latest code
+    echo ""
+    echo -e "${BLUE}[4/4]${NC} Compiling expocli with latest source code..."
     docker compose run --rm --no-TTY xml-query-cli bash -c \
-        "mkdir -p /app/build && cd /app/build && cmake .. >/dev/null 2>&1 && make" >&2
+        "mkdir -p /app/build && cd /app/build && cmake .. >/dev/null 2>&1 && make" 2>&1
 
     if docker compose run --rm --no-TTY xml-query-cli test -f /app/build/expocli 2>/dev/null; then
         echo -e "${GREEN}✓${NC} Compilation successful"
@@ -110,6 +129,9 @@ else
         echo -e "${YELLOW}⚠${NC}  Compilation may have failed, but installation continues"
         echo "    The binary will be compiled on first run if needed"
     fi
+
+    echo ""
+    echo -e "${GREEN}✓${NC} Docker rebuild and compilation complete!"
 fi
 
 # Test the setup
@@ -140,6 +162,7 @@ echo -e "  ${BLUE}expocli${NC}                                    # Start intera
 echo -e "  ${BLUE}expocli 'SELECT name FROM ./data'${NC}         # Single query"
 echo -e "  ${BLUE}expocli --help${NC}                             # Show help"
 echo ""
-echo "Note: expocli has been compiled with the latest code."
-echo "      Future runs will use this compiled binary."
+echo "Note: Docker image has been rebuilt with latest dependencies."
+echo "      Binary has been compiled with the latest source code."
+echo "      Your expocli is now ready to use!"
 echo ""
