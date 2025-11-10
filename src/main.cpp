@@ -13,7 +13,7 @@ void printWelcome() {
 }
 
 void printUsage(const char* programName) {
-    std::cout << "XML Query CLI - Phase 2\n";
+    std::cout << "expocli - a FT XML parser for FT/DSI/DIP\n";
     std::cout << "Usage:\n";
     std::cout << "  " << programName << "              # Start interactive mode\n";
     std::cout << "  " << programName << " [query]      # Execute single query\n\n";
@@ -23,7 +23,7 @@ void printUsage(const char* programName) {
     std::cout << "  [ORDER BY <field>]\n";
     std::cout << "  [LIMIT <number>]\n\n";
     std::cout << "Examples:\n";
-    std::cout << "  SELECT name FROM ./data WHERE calories < 500\n";
+    std::cout << "  SELECT name FROM ./data WHERE length < 500\n";
     std::cout << "  SELECT name FROM /path/to/files WHERE year > 2000 AND price < 30\n";
     std::cout << "  SELECT name,price FROM ../data ORDER BY price LIMIT 5\n\n";
     std::cout << "Features:\n";
@@ -37,7 +37,7 @@ void printUsage(const char* programName) {
     std::cout << "Interactive Commands:\n";
     std::cout << "  help, \\h     Show this help message\n";
     std::cout << "  exit, quit   Exit the program\n";
-    std::cout << "  \\c           Clear screen\n";
+    std::cout << "  \\c           Clear screen\n\n";
 }
 
 void executeQuery(const std::string& query) {
