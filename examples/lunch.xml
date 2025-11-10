@@ -1,0 +1,20 @@
+<lunch_menu>
+  <food>
+    <name>Caesar Salad</name>
+    <price>$8.50</price>
+    <description>Crisp romaine lettuce with parmesan and croutons</description>
+    <calories>350</calories>
+  </food>
+  <food>
+    <name>Grilled Chicken Sandwich</name>
+    <price>$10.95</price>
+    <description>Tender grilled chicken breast on a toasted bun</description>
+    <calories>550</calories>
+  </food>
+  <food>
+    <name>Veggie Burger</name>
+    <price>$9.50</price>
+    <description>House-made veggie patty with fresh vegetables</description>
+    <calories>420</calories>
+  </food>
+</lunch_menu>

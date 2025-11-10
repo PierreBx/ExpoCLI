@@ -39,3 +39,34 @@
 
 # debug information files
 *.dwo
+
+# Build directories
+build/
+bin/
+lib/
+out/
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.cmake
+!CMakeLists.txt
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Executables
+xmlquery
+
+# Temporary files
+*.log
+*.tmp
+*.bak
+*.backup

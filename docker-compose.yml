@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  xml-query-cli:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: xml-query-dev
+    volumes:
+      - .:/app
+      - build-cache:/app/build
+    working_dir: /app
+    stdin_open: true
+    tty: true
+    command: /bin/bash
+
+volumes:
+  build-cache:
