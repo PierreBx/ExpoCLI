@@ -19,7 +19,7 @@ This tool provides a simple, SQL-like interface for querying XML data. It's desi
 
 ### Option 1: Using Docker (Recommended)
 - Docker installed on your system
-- docker-compose (optional, for easier management)
+- Docker Compose V2 (integrated into Docker CLI)
 
 ### Option 2: Local Build
 - C++17 compatible compiler (GCC 7+, Clang 5+)
@@ -32,12 +32,12 @@ This tool provides a simple, SQL-like interface for querying XML data. It's desi
 
 1. **Build the Docker container:**
 ```bash
-docker-compose build
+docker compose build
 ```
 
 2. **Start the container:**
 ```bash
-docker-compose run --rm xml-query-cli
+docker compose run --rm xml-query-cli
 ```
 
 3. **Inside the container, build the project:**
@@ -261,8 +261,8 @@ sudo usermod -aG docker $USER
 
 **Problem:** Port conflicts
 ```bash
-# Use docker-compose down to clean up
-docker-compose down
+# Use docker compose down to clean up
+docker compose down
 ```
 
 ### Build Issues

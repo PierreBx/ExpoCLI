@@ -21,7 +21,7 @@ WORKDIR /app
 # Copy project files
 COPY . /app
 
-# Build the project (will be done via docker-compose or manually)
+# Build the project (will be done via docker compose or manually)
 # RUN mkdir -p build && cd build && cmake .. && make
 
 CMD ["/bin/bash"]
