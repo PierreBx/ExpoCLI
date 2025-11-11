@@ -2,10 +2,11 @@ version: '3.8'
 
 services:
   xml-query-cli:
+    image: expocli_image
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: xml-query-dev
+    container_name: expocli_container
     volumes:
       - .:/app
       - build-cache:/app/build
