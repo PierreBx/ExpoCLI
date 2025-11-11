@@ -50,6 +50,20 @@ std::unique_ptr<Query> Parser::parse() {
         throw ParseError("Unexpected tokens after query - " + tokenInfo);
     }
 
+    // Post-processing: Mark variable references in field paths
+    if (!query->for_clauses.empty()) {
+        // Check SELECT fields
+        for (auto& field : query->select_fields) {
+            if (!field.components.empty() && query->isForVariable(field.components[0])) {
+                field.is_variable_ref = true;
+                field.variable_name = field.components[0];
+            }
+        }
+
+        // Check WHERE clause fields
+        markVariableReferencesInWhere(query->where.get(), *query);
+    }
+
     return query;
 }
 
@@ -420,6 +434,23 @@ void Parser::parseLimitClause(Query& query) {
         throw ParseError("Invalid LIMIT value");
     } catch (const std::out_of_range&) {
         throw ParseError("LIMIT value out of range");
+    }
+}
+
+// Mark variable references in WHERE clause fields
+void Parser::markVariableReferencesInWhere(WhereExpr* expr, const Query& query) {
+    if (!expr) return;
+
+    if (auto* condition = dynamic_cast<WhereCondition*>(expr)) {
+        // Check if field starts with a variable name
+        if (!condition->field.components.empty() && query.isForVariable(condition->field.components[0])) {
+            condition->field.is_variable_ref = true;
+            condition->field.variable_name = condition->field.components[0];
+        }
+    } else if (auto* logical = dynamic_cast<WhereLogical*>(expr)) {
+        // Recursively process left and right expressions
+        markVariableReferencesInWhere(logical->left.get(), query);
+        markVariableReferencesInWhere(logical->right.get(), query);
     }
 }
 

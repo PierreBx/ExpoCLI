@@ -8,6 +8,7 @@
 #include <utility>
 #include <atomic>
 #include <functional>
+#include <map>
 
 namespace expocli {
 
@@ -63,6 +64,30 @@ private:
         const Query& query,
         const pugi::xml_document& doc,
         const std::string& filename
+    );
+
+    // Recursive function to process nested FOR clauses
+    static void processNestedForClauses(
+        const pugi::xml_node& currentContext,
+        const Query& query,
+        std::map<std::string, pugi::xml_node>& varContext,
+        size_t forClauseIndex,
+        const std::string& filename,
+        std::vector<ResultRow>& results
+    );
+
+    // Resolve field value using variable context
+    static std::string resolveFieldWithContext(
+        const FieldPath& field,
+        const std::map<std::string, pugi::xml_node>& varContext,
+        const pugi::xml_node& fallbackContext
+    );
+
+    // Evaluate WHERE expression with variable context
+    static bool evaluateWhereWithContext(
+        const std::map<std::string, pugi::xml_node>& varContext,
+        const WhereExpr* expr,
+        const Query& query
     );
 
     // Execute query with multi-threading

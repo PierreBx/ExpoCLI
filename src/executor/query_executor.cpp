@@ -130,56 +130,39 @@ std::vector<ResultRow> QueryExecutor::processFileWithForClauses(
 ) {
     std::vector<ResultRow> results;
 
-    // FOR clause processing with nested iteration
-    // Phase 1: Support single-level FOR clause
-    // Example: FOR emp IN employee
-    //   - Find all <employee> nodes
-    //   - For each employee node, evaluate SELECT fields relative to that node
-
     if (query.for_clauses.empty()) {
-        // Should not reach here - caller should check
         return results;
     }
 
-    // Process first FOR clause (Phase 1: single FOR clause support)
-    const ForClause& forClause = query.for_clauses[0];
+    // Variable context: maps variable name -> bound XML node
+    std::map<std::string, pugi::xml_node> varContext;
 
-    // Find all nodes matching the FOR path
-    std::vector<pugi::xml_node> iterationNodes;
+    // Start nested iteration from document root
+    processNestedForClauses(doc.document_element(), query, varContext, 0, filename, results);
 
-    if (forClause.path.components.size() == 1) {
-        // Simple path: find all nodes with this element name
-        std::string elementName = forClause.path.components[0];
+    return results;
+}
 
-        // Depth-first search for all matching elements
-        std::function<void(const pugi::xml_node&)> findElements =
-            [&](const pugi::xml_node& node) {
-                if (node.type() == pugi::node_element && node.name() == elementName) {
-                    iterationNodes.push_back(node);
-                }
-                for (pugi::xml_node child : node.children()) {
-                    findElements(child);
-                }
-            };
-
-        findElements(doc);
-    } else {
-        // Multi-component path: use partial path matching
-        XmlNavigator::findNodesByPartialPath(doc, forClause.path.components, iterationNodes);
-    }
-
-    // For each iteration node, extract SELECT fields
-    for (const auto& contextNode : iterationNodes) {
-        // Check WHERE clause if present (evaluate in context of this node)
+// Recursive function to handle nested FOR clauses
+void QueryExecutor::processNestedForClauses(
+    const pugi::xml_node& currentContext,
+    const Query& query,
+    std::map<std::string, pugi::xml_node>& varContext,
+    size_t forClauseIndex,
+    const std::string& filename,
+    std::vector<ResultRow>& results
+) {
+    // Base case: all FOR clauses processed, now extract SELECT fields
+    if (forClauseIndex >= query.for_clauses.size()) {
+        // Check WHERE clause if present
         if (query.where) {
-            if (!XmlNavigator::evaluateWhereExpr(contextNode, query.where.get(), 0)) {
-                continue; // Skip this node if WHERE condition fails
+            if (!evaluateWhereWithContext(varContext, query.where.get(), query)) {
+                return; // Skip this combination if WHERE fails
             }
         }
 
-        // Extract SELECT fields from this context node
+        // Extract SELECT fields using variable context
         ResultRow row;
-
         for (const auto& field : query.select_fields) {
             std::string fieldName;
             std::string value;
@@ -190,31 +173,199 @@ std::vector<ResultRow> QueryExecutor::processFileWithForClauses(
             } else {
                 fieldName = field.components.back();
 
-                // Extract field value relative to context node
-                if (field.components.size() == 1) {
-                    // Simple field: look for child element
-                    pugi::xml_node foundNode = XmlNavigator::findFirstElementByName(contextNode, field.components[0]);
-                    if (foundNode) {
-                        value = foundNode.child_value();
-                    }
-                } else {
-                    // Multi-component path: use partial path matching from context node
-                    std::vector<pugi::xml_node> fieldNodes;
-                    XmlNavigator::findNodesByPartialPath(contextNode, field.components, fieldNodes);
-
-                    if (!fieldNodes.empty()) {
-                        value = fieldNodes[0].child_value();
-                    }
-                }
+                // Resolve field using variable context
+                value = resolveFieldWithContext(field, varContext, currentContext);
             }
 
             row.push_back({fieldName, value});
         }
 
         results.push_back(row);
+        return;
     }
 
-    return results;
+    // Process current FOR clause
+    const ForClause& forClause = query.for_clauses[forClauseIndex];
+
+    // Find nodes to iterate over
+    std::vector<pugi::xml_node> iterationNodes;
+
+    // Check if FOR path starts with a variable reference
+    if (!forClause.path.components.empty()) {
+        std::string firstComponent = forClause.path.components[0];
+
+        // Check if it's a variable reference
+        auto varIt = varContext.find(firstComponent);
+        if (varIt != varContext.end()) {
+            // Path is relative to a bound variable (e.g., "dept.employee")
+            pugi::xml_node parentNode = varIt->second;
+
+            // Get remaining path components (skip variable name)
+            std::vector<std::string> subPath(
+                forClause.path.components.begin() + 1,
+                forClause.path.components.end()
+            );
+
+            if (subPath.size() == 1) {
+                // Simple child search
+                std::function<void(const pugi::xml_node&)> findElements =
+                    [&](const pugi::xml_node& node) {
+                        if (node.type() == pugi::node_element && node.name() == subPath[0]) {
+                            iterationNodes.push_back(node);
+                        }
+                        for (pugi::xml_node child : node.children()) {
+                            findElements(child);
+                        }
+                    };
+                findElements(parentNode);
+            } else if (!subPath.empty()) {
+                // Multi-component path from parent node
+                XmlNavigator::findNodesByPartialPath(parentNode, subPath, iterationNodes);
+            }
+        } else {
+            // Not a variable reference - search from current context or document root
+            if (forClause.path.components.size() == 1) {
+                // Simple path: find all matching elements
+                std::string elementName = forClause.path.components[0];
+                std::function<void(const pugi::xml_node&)> findElements =
+                    [&](const pugi::xml_node& node) {
+                        if (node.type() == pugi::node_element && node.name() == elementName) {
+                            iterationNodes.push_back(node);
+                        }
+                        for (pugi::xml_node child : node.children()) {
+                            findElements(child);
+                        }
+                    };
+                findElements(currentContext.parent() ? currentContext.root() : currentContext);
+            } else {
+                // Multi-component path
+                pugi::xml_node searchRoot = currentContext.parent() ? currentContext.root() : currentContext;
+                XmlNavigator::findNodesByPartialPath(searchRoot, forClause.path.components, iterationNodes);
+            }
+        }
+    }
+
+    // Iterate over found nodes and recursively process next FOR clause
+    for (const auto& node : iterationNodes) {
+        // Bind this node to the variable
+        varContext[forClause.variable] = node;
+
+        // Recursively process next FOR clause
+        processNestedForClauses(node, query, varContext, forClauseIndex + 1, filename, results);
+
+        // Unbind variable (cleanup for next iteration)
+        varContext.erase(forClause.variable);
+    }
+}
+
+// Resolve field value using variable context
+std::string QueryExecutor::resolveFieldWithContext(
+    const FieldPath& field,
+    const std::map<std::string, pugi::xml_node>& varContext,
+    const pugi::xml_node& fallbackContext
+) {
+    std::string value;
+
+    if (field.is_variable_ref && !field.variable_name.empty()) {
+        // Field starts with a variable reference (e.g., "emp.name")
+        auto varIt = varContext.find(field.variable_name);
+        if (varIt != varContext.end()) {
+            pugi::xml_node contextNode = varIt->second;
+
+            // Get remaining path components after variable name
+            std::vector<std::string> subPath;
+            if (field.components.size() > 1) {
+                subPath.assign(field.components.begin() + 1, field.components.end());
+            }
+
+            if (subPath.empty()) {
+                // Just the variable node itself - shouldn't happen but handle it
+                value = contextNode.child_value();
+            } else if (subPath.size() == 1) {
+                // Simple child lookup
+                pugi::xml_node childNode = XmlNavigator::findFirstElementByName(contextNode, subPath[0]);
+                if (childNode) {
+                    value = childNode.child_value();
+                }
+            } else {
+                // Multi-component path from variable node
+                std::vector<pugi::xml_node> fieldNodes;
+                XmlNavigator::findNodesByPartialPath(contextNode, subPath, fieldNodes);
+                if (!fieldNodes.empty()) {
+                    value = fieldNodes[0].child_value();
+                }
+            }
+        }
+    } else {
+        // Normal field (not a variable reference) - use fallback context
+        if (field.components.size() == 1) {
+            pugi::xml_node foundNode = XmlNavigator::findFirstElementByName(fallbackContext, field.components[0]);
+            if (foundNode) {
+                value = foundNode.child_value();
+            }
+        } else {
+            std::vector<pugi::xml_node> fieldNodes;
+            XmlNavigator::findNodesByPartialPath(fallbackContext, field.components, fieldNodes);
+            if (!fieldNodes.empty()) {
+                value = fieldNodes[0].child_value();
+            }
+        }
+    }
+
+    return value;
+}
+
+// Evaluate WHERE expression with variable context
+bool QueryExecutor::evaluateWhereWithContext(
+    const std::map<std::string, pugi::xml_node>& varContext,
+    const WhereExpr* expr,
+    const Query& query
+) {
+    if (!expr) return true;
+
+    if (const auto* condition = dynamic_cast<const WhereCondition*>(expr)) {
+        // Resolve field in condition
+        if (condition->field.is_variable_ref && !condition->field.variable_name.empty()) {
+            // Use variable context
+            auto varIt = varContext.find(condition->field.variable_name);
+            if (varIt != varContext.end()) {
+                pugi::xml_node contextNode = varIt->second;
+
+                // Evaluate condition on this node
+                // Need to adjust the field path to be relative to the bound node
+                WhereCondition adjustedCondition = *condition;
+
+                // Remove variable name from components
+                if (adjustedCondition.field.components.size() > 1) {
+                    adjustedCondition.field.components.erase(adjustedCondition.field.components.begin());
+                } else {
+                    // Condition is on the variable node itself
+                    adjustedCondition.field.components.clear();
+                }
+
+                return XmlNavigator::evaluateCondition(contextNode, adjustedCondition, 0);
+            }
+            return false; // Variable not found
+        } else {
+            // No variable reference - this shouldn't happen with FOR clauses but handle it
+            // Use the last bound variable's context if available
+            if (!varContext.empty()) {
+                return XmlNavigator::evaluateCondition(varContext.rbegin()->second, *condition, 0);
+            }
+            return false;
+        }
+    } else if (const auto* logical = dynamic_cast<const WhereLogical*>(expr)) {
+        bool leftResult = evaluateWhereWithContext(varContext, logical->left.get(), query);
+        bool rightResult = evaluateWhereWithContext(varContext, logical->right.get(), query);
+
+        if (logical->op == LogicalOp::AND) {
+            return leftResult && rightResult;
+        } else if (logical->op == LogicalOp::OR) {
+            return leftResult || rightResult;
+        }
+    }
+
+    return true;
 }
 
 std::vector<ResultRow> QueryExecutor::processFile(

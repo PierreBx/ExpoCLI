@@ -81,6 +81,8 @@ enum class ComparisonOp {
 struct FieldPath {
     std::vector<std::string> components; // ["breakfast_menu", "food", "name"]
     bool include_filename = false;       // Special case for FILE_NAME
+    bool is_variable_ref = false;        // True if first component is a FOR variable
+    std::string variable_name = "";      // Variable name if is_variable_ref is true
 };
 
 // Logical operators for combining conditions
@@ -125,6 +127,16 @@ struct Query {
     std::unique_ptr<WhereExpr> where;          // Optional WHERE clause (can be condition or logical)
     std::vector<std::string> order_by_fields;  // ORDER BY fields (Phase 2)
     int limit = -1;                            // LIMIT value (Phase 2, -1 means no limit)
+
+    // Helper: Check if identifier is a FOR variable
+    bool isForVariable(const std::string& name) const {
+        for (const auto& forClause : for_clauses) {
+            if (forClause.variable == name) {
+                return true;
+            }
+        }
+        return false;
+    }
 };
 
 } // namespace expocli
