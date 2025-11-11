@@ -147,7 +147,7 @@ echo ""
         echo ""
 
         # Step 1: Stop any running containers
-        echo -e "${BLUE}[1/4]${NC} Stopping any running containers..."
+        echo -e "${BLUE}[1/5]${NC} Stopping any running containers..."
         CONTAINER_NAME="expocli_container"
         if docker ps -q -f name="${CONTAINER_NAME}" | grep -q .; then
             echo "      Stopping expocli_container..."
@@ -159,34 +159,44 @@ echo ""
 
         # Step 2: Rebuild Docker image
         echo ""
-        echo -e "${BLUE}[2/4]${NC} Rebuilding Docker image with latest dependencies..."
+        echo -e "${BLUE}[2/5]${NC} Rebuilding Docker image with latest dependencies..."
         echo "      (This includes readline library and other dependencies)"
         docker compose build --no-cache
         echo -e "${GREEN}✓${NC} Docker image rebuilt successfully"
 
-        # Step 3: Clean old build directory
+        # Step 3: Start the persistent container
         echo ""
-        echo -e "${BLUE}[3/4]${NC} Cleaning old build artifacts..."
-        echo "      Starting temporary container to clean build directory..."
-        if docker compose run --rm --no-TTY expocli bash -c "rm -rf /app/build" 2>/dev/null; then
-            echo -e "${GREEN}✓${NC} Build directory cleaned (container stopped)"
+        echo -e "${BLUE}[3/5]${NC} Starting persistent container..."
+        docker compose up -d
+        sleep 2  # Give container time to be ready
+        if docker ps -q -f name="${CONTAINER_NAME}" -f status=running | grep -q .; then
+            echo -e "${GREEN}✓${NC} Container is running"
+        else
+            echo -e "${YELLOW}⚠${NC}  Failed to start container"
+            exit 1
+        fi
+
+        # Step 4: Clean old build directory
+        echo ""
+        echo -e "${BLUE}[4/5]${NC} Cleaning old build artifacts..."
+        if docker compose exec -T expocli bash -c "rm -rf /app/build" 2>/dev/null; then
+            echo -e "${GREEN}✓${NC} Build directory cleaned"
         else
             echo -e "${YELLOW}⚠${NC}  Failed to clean build directory"
             exit 1
         fi
 
-        # Step 4: Compile the binary with latest code
+        # Step 5: Compile the binary with latest code
         echo ""
-        echo -e "${BLUE}[4/4]${NC} Compiling expocli with latest source code..."
-        echo "      Starting temporary container for compilation..."
+        echo -e "${BLUE}[5/5]${NC} Compiling expocli with latest source code..."
         echo "      (This may take 30-60 seconds)"
 
-        if docker compose run --rm --no-TTY expocli bash -c \
+        if docker compose exec -T expocli bash -c \
             "mkdir -p /app/build && cd /app/build && cmake .. >/dev/null 2>&1 && make"; then
             echo ""
             # Verify the binary was created
-            if docker compose run --rm --no-TTY expocli test -f /app/build/expocli 2>/dev/null; then
-                echo -e "${GREEN}✓${NC} Compilation successful (container stopped)"
+            if docker compose exec -T expocli test -f /app/build/expocli 2>/dev/null; then
+                echo -e "${GREEN}✓${NC} Compilation successful"
             else
                 echo -e "${YELLOW}⚠${NC}  Binary not found after compilation"
                 exit 1
@@ -199,12 +209,6 @@ echo ""
 
         echo ""
         echo -e "${GREEN}✓${NC} Docker rebuild and compilation complete!"
-
-        # Start the persistent container
-        echo ""
-        echo -e "${BLUE}[Starting]${NC} Starting persistent container..."
-        docker compose up -d
-        echo -e "${GREEN}✓${NC} Container is running and ready to use"
     else
         # Quick rebuild mode - just recompile binary with existing image
         echo -e "${YELLOW}INFO:${NC} Using existing Docker image (use --rebuild-docker to rebuild)"
@@ -212,7 +216,7 @@ echo ""
 
         # Ensure Docker image exists
         echo "Testing Docker setup..."
-        if ! docker compose run --rm --no-TTY expocli true 2>/dev/null; then
+        if ! docker images -q expocli_image | grep -q .; then
             echo -e "${BLUE}[Building]${NC} Docker image not found, building it now..."
             echo "           (This is a one-time setup, takes ~1-2 minutes)"
             if docker compose build; then
@@ -227,11 +231,28 @@ echo ""
             echo ""
         fi
 
+        # Start the persistent container if not already running
+        CONTAINER_NAME="expocli_container"
+        if docker ps -q -f name="${CONTAINER_NAME}" -f status=running | grep -q .; then
+            echo -e "${GREEN}✓${NC} Container is already running"
+            echo ""
+        else
+            echo -e "${BLUE}[Starting]${NC} Starting persistent container..."
+            docker compose up -d
+            sleep 2  # Give container time to be ready
+            if docker ps -q -f name="${CONTAINER_NAME}" -f status=running | grep -q .; then
+                echo -e "${GREEN}✓${NC} Container is running"
+                echo ""
+            else
+                echo -e "${YELLOW}⚠${NC}  Failed to start container"
+                exit 1
+            fi
+        fi
+
         # Step 1: Clean old build directory
         echo -e "${BLUE}[1/2]${NC} Cleaning old build artifacts..."
-        echo "      Starting temporary container..."
-        if docker compose run --rm --no-TTY expocli bash -c "rm -rf /app/build" 2>/dev/null; then
-            echo -e "${GREEN}✓${NC} Build directory cleaned (container stopped)"
+        if docker compose exec -T expocli bash -c "rm -rf /app/build" 2>/dev/null; then
+            echo -e "${GREEN}✓${NC} Build directory cleaned"
         else
             echo -e "${YELLOW}⚠${NC}  Failed to clean build directory"
             exit 1
@@ -240,15 +261,14 @@ echo ""
         # Step 2: Compile the binary with latest code
         echo ""
         echo -e "${BLUE}[2/2]${NC} Compiling expocli with latest source code..."
-        echo "      Starting temporary container for compilation..."
         echo "      (This may take 30-60 seconds)"
 
-        if docker compose run --rm --no-TTY expocli bash -c \
+        if docker compose exec -T expocli bash -c \
             "mkdir -p /app/build && cd /app/build && cmake .. >/dev/null 2>&1 && make"; then
             echo ""
             # Verify the binary was created
-            if docker compose run --rm --no-TTY expocli test -f /app/build/expocli 2>/dev/null; then
-                echo -e "${GREEN}✓${NC} Compilation successful (container stopped)"
+            if docker compose exec -T expocli test -f /app/build/expocli 2>/dev/null; then
+                echo -e "${GREEN}✓${NC} Compilation successful"
             else
                 echo -e "${YELLOW}⚠${NC}  Binary not found after compilation"
                 exit 1
@@ -261,12 +281,6 @@ echo ""
 
         echo ""
         echo -e "${GREEN}✓${NC} Binary compilation complete!"
-
-        # Start the persistent container
-        echo ""
-        echo -e "${BLUE}[Starting]${NC} Starting persistent container..."
-        docker compose up -d
-        echo -e "${GREEN}✓${NC} Container is running and ready to use"
     fi
 
 # Test the setup
@@ -300,17 +314,21 @@ echo ""
 echo -e "${BLUE}How it works:${NC}"
 echo "  expocli runs inside a persistent Docker container transparently."
 echo "  The container:"
-echo "    - Runs in the background (very lightweight)"
-echo "    - Starts automatically when needed"
+echo "    - Is now running in the background (very lightweight)"
+echo "    - Will restart automatically if stopped"
 echo "    - Executes queries instantly (no container startup overhead)"
 echo "  You won't even notice - it feels like a native command!"
 echo ""
 if [ "$REBUILD_DOCKER" = true ]; then
     echo "Note: Docker image has been rebuilt with latest dependencies."
     echo "      Binary has been compiled with the latest source code."
+    echo "      Persistent container is running and ready!"
 else
     echo "Note: Binary has been compiled with the latest source code."
+    echo "      Persistent container is running and ready!"
     echo "      To rebuild Docker image: ./install.sh --rebuild-docker"
 fi
-echo "      Your expocli is now ready to use!"
+echo ""
+echo "Tip:  Check container status: cd $(pwd) && docker compose ps"
+echo "      Stop container: docker compose down (auto-restarts on next use)"
 echo ""
