@@ -44,11 +44,20 @@ public:
         size_t parentDepth
     );
 
-    // Helper to navigate nested paths
+    // Helper to navigate nested paths (absolute from current node)
     static void findNodes(
         const pugi::xml_node& node,
         const std::vector<std::string>& path,
         size_t depth,
+        std::vector<pugi::xml_node>& results
+    );
+
+    // Find nodes by partial path (suffix matching)
+    // Searches entire tree for nodes where the path ending matches the given components
+    // Example: ["department", "name"] matches ".../departments/department/name"
+    static void findNodesByPartialPath(
+        const pugi::xml_node& node,
+        const std::vector<std::string>& path,
         std::vector<pugi::xml_node>& results
     );
 

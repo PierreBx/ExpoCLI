@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<company>
+    <name>TechCorp</name>
+    <founded>2010</founded>
+    <department>
+        <name>Engineering</name>
+        <budget>500000</budget>
+        <employee>
+            <name>Alice Smith</name>
+            <position>Senior Engineer</position>
+            <salary>95000</salary>
+        </employee>
+        <employee>
+            <name>Bob Johnson</name>
+            <position>Engineer</position>
+            <salary>75000</salary>
+        </employee>
+    </department>
+    <department>
+        <name>Sales</name>
+        <budget>300000</budget>
+        <employee>
+            <name>Carol White</name>
+            <position>Sales Manager</position>
+            <salary>85000</salary>
+        </employee>
+        <employee>
+            <name>David Brown</name>
+            <position>Sales Rep</position>
+            <salary>60000</salary>
+        </employee>
+    </department>
+    <product>
+        <name>Widget Pro</name>
+        <price>99.99</price>
+        <category>
+            <name>Electronics</name>
+            <description>Electronic devices</description>
+        </category>
+    </product>
+    <product>
+        <name>Gadget Plus</name>
+        <price>149.99</price>
+        <category>
+            <name>Software</name>
+            <description>Software products</description>
+        </category>
+    </product>
+</company>

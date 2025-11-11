@@ -47,9 +47,10 @@ std::vector<XmlResult> XmlNavigator::extractValues(
         return results;
     }
 
-    // Find all nodes matching the full path
+    // Multi-component path: use partial path matching (suffix matching)
+    // This allows "department.name" to match any path ending with those components
     std::vector<pugi::xml_node> nodes;
-    findNodes(doc, field.components, 0, nodes);
+    findNodesByPartialPath(doc, field.components, nodes);
 
     // Extract values from found nodes
     for (const auto& node : nodes) {
@@ -175,6 +176,69 @@ void XmlNavigator::findNodes(
     }
 }
 
+void XmlNavigator::findNodesByPartialPath(
+    const pugi::xml_node& node,
+    const std::vector<std::string>& path,
+    std::vector<pugi::xml_node>& results
+) {
+    if (path.empty() || !node) {
+        return;
+    }
+
+    // Helper function to build the path from a node to root
+    auto getNodePath = [](pugi::xml_node n) -> std::vector<std::string> {
+        std::vector<std::string> nodePath;
+        while (n && n.type() == pugi::node_element) {
+            nodePath.insert(nodePath.begin(), std::string(n.name()));
+            n = n.parent();
+        }
+        return nodePath;
+    };
+
+    // Helper function to check if nodePath ends with the target path
+    auto endsWithPath = [](const std::vector<std::string>& nodePath,
+                          const std::vector<std::string>& targetPath) -> bool {
+        if (nodePath.size() < targetPath.size()) {
+            return false;
+        }
+
+        // Check if the last N components match
+        size_t offset = nodePath.size() - targetPath.size();
+        for (size_t i = 0; i < targetPath.size(); ++i) {
+            if (nodePath[offset + i] != targetPath[i]) {
+                return false;
+            }
+        }
+        return true;
+    };
+
+    // Recursively search all nodes
+    std::function<void(const pugi::xml_node&)> searchTree =
+        [&](const pugi::xml_node& current) {
+            if (!current) {
+                return;
+            }
+
+            // Only check element nodes, but traverse all node types
+            if (current.type() == pugi::node_element) {
+                // Build path from this node to root
+                std::vector<std::string> nodePath = getNodePath(current);
+
+                // Check if this node's path ends with our target path
+                if (endsWithPath(nodePath, path)) {
+                    results.push_back(current);
+                }
+            }
+
+            // Recurse to children regardless of node type
+            for (pugi::xml_node child : current.children()) {
+                searchTree(child);
+            }
+        };
+
+    searchTree(node);
+}
+
 std::string XmlNavigator::getNodeValue(
     const pugi::xml_node& node,
     const FieldPath& field
@@ -192,17 +256,15 @@ std::string XmlNavigator::getNodeValue(
         return "";
     }
 
-    // Navigate to the target node using full path
-    pugi::xml_node current = node;
+    // Multi-component: use partial path matching from current node
+    std::vector<pugi::xml_node> nodes;
+    findNodesByPartialPath(node, field.components, nodes);
 
-    for (const auto& component : field.components) {
-        current = current.child(component.c_str());
-        if (!current) {
-            return "";
-        }
+    if (!nodes.empty()) {
+        return nodes[0].child_value();
     }
 
-    return current.child_value();
+    return "";
 }
 
 std::string XmlNavigator::getNodeValueRelative(

@@ -247,14 +247,12 @@ std::vector<ResultRow> QueryExecutor::processFile(
                                             value = foundNode.child_value();
                                         }
                                     } else {
-                                        // Use full path navigation
-                                        pugi::xml_node targetNode = node;
-                                        for (const auto& component : field.components) {
-                                            targetNode = targetNode.child(component.c_str());
-                                            if (!targetNode) break;
-                                        }
-                                        if (targetNode) {
-                                            value = targetNode.child_value();
+                                        // Use partial path matching from this node
+                                        std::vector<pugi::xml_node> fieldNodes;
+                                        XmlNavigator::findNodesByPartialPath(node, field.components, fieldNodes);
+
+                                        if (!fieldNodes.empty()) {
+                                            value = fieldNodes[0].child_value();
                                         }
                                     }
                                 }
@@ -277,13 +275,14 @@ std::vector<ResultRow> QueryExecutor::processFile(
         }
 
         // Navigate to parent nodes that contain the WHERE field
+        // Use partial path matching to find all nodes matching the parent path suffix
         std::vector<std::string> parentPath(
             whereField.components.begin(),
             whereField.components.end() - 1
         );
 
         std::vector<pugi::xml_node> candidateNodes;
-        XmlNavigator::findNodes(*doc, parentPath, 0, candidateNodes);
+        XmlNavigator::findNodesByPartialPath(*doc, parentPath, candidateNodes);
 
         // Filter nodes based on WHERE expression
         // Pass parentPath.size() so evaluation uses relative path navigation
@@ -309,33 +308,14 @@ std::vector<ResultRow> QueryExecutor::processFile(
                                 value = foundNode.child_value();
                             }
                         } else {
-                            // Calculate overlap between field path and parent path
-                            // to use relative navigation from the candidate node
-                            size_t skipComponents = 0;
+                            // Use partial path matching relative to current node
+                            // First, try to find the field using partial path from this node
+                            std::vector<pugi::xml_node> fieldNodes;
+                            XmlNavigator::findNodesByPartialPath(node, field.components, fieldNodes);
 
-                            // Check if field path starts with parent path
-                            if (field.components.size() >= parentPath.size()) {
-                                bool matches = true;
-                                for (size_t i = 0; i < parentPath.size(); ++i) {
-                                    if (field.components[i] != parentPath[i]) {
-                                        matches = false;
-                                        break;
-                                    }
-                                }
-                                if (matches) {
-                                    skipComponents = parentPath.size();
-                                }
-                            }
-
-                            // Navigate from the candidate node using relative path
-                            pugi::xml_node targetNode = node;
-                            for (size_t i = skipComponents; i < field.components.size(); ++i) {
-                                targetNode = targetNode.child(field.components[i].c_str());
-                                if (!targetNode) break;
-                            }
-
-                            if (targetNode) {
-                                value = targetNode.child_value();
+                            if (!fieldNodes.empty()) {
+                                // Use the first match
+                                value = fieldNodes[0].child_value();
                             }
                         }
                     }
