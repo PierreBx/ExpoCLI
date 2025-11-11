@@ -20,12 +20,19 @@ export TESTS_TOTAL=0
 export TEST_START_TIME=""
 
 # Paths
-export EXPOCLI_BIN="./build/expocli"
 export TEST_DIR="./tests"
 export TEST_DATA_DIR="$TEST_DIR/data"
 export TEST_SCHEMA_DIR="$TEST_DIR/schemas"
 export TEST_OUTPUT_DIR="$TEST_DIR/output"
 export TEST_LOG_DIR="$TEST_DIR/logs"
+
+# Detect expocli binary location
+# First check if expocli is in PATH, otherwise check ./build/expocli
+if command -v expocli &> /dev/null; then
+    export EXPOCLI_BIN="expocli"
+else
+    export EXPOCLI_BIN="./build/expocli"
+fi
 
 # Initialize test environment
 init_tests() {
@@ -36,27 +43,47 @@ init_tests() {
 
     # Show current directory for debugging
     echo -e "${COLOR_CYAN}Working directory: $(pwd)${COLOR_RESET}"
+
+    # Show which binary will be used
+    if command -v expocli &> /dev/null; then
+        echo -e "${COLOR_GREEN}Using expocli from PATH: $(which expocli)${COLOR_RESET}"
+    else
+        echo -e "${COLOR_CYAN}Using local build: $EXPOCLI_BIN${COLOR_RESET}"
+    fi
     echo ""
 
     # Clean and recreate output directories
     rm -rf "$TEST_OUTPUT_DIR"/* "$TEST_LOG_DIR"/* 2>/dev/null
     mkdir -p "$TEST_OUTPUT_DIR" "$TEST_LOG_DIR"
 
-    # Check if binary exists
-    if [ ! -f "$EXPOCLI_BIN" ]; then
-        echo -e "${COLOR_RED}ERROR: ExpoCLI binary not found at $EXPOCLI_BIN${COLOR_RESET}"
-        echo -e "${COLOR_YELLOW}The binary needs to be built before running tests.${COLOR_RESET}"
+    # Check if binary exists or is available
+    if ! command -v expocli &> /dev/null && [ ! -f "$EXPOCLI_BIN" ]; then
+        echo -e "${COLOR_RED}ERROR: ExpoCLI binary not found${COLOR_RESET}"
+        echo -e "${COLOR_YELLOW}The binary is not in PATH and not found at $EXPOCLI_BIN${COLOR_RESET}"
         echo ""
-        echo "Would you like to build it now? (y/n)"
+        echo "Options:"
+        echo "  1. Install expocli to your PATH, or"
+        echo "  2. Build locally in ./build/"
+        echo ""
+        echo "Would you like to build it locally now? (y/n)"
         read -r response
 
         if [[ "$response" =~ ^[Yy]$ ]]; then
+            # Check if cmake is available
+            if ! command -v cmake &> /dev/null; then
+                echo ""
+                echo -e "${COLOR_RED}ERROR: cmake is not installed or not in PATH${COLOR_RESET}"
+                echo -e "${COLOR_YELLOW}Please install cmake first, or use the installed expocli command${COLOR_RESET}"
+                exit 1
+            fi
+
             echo ""
             echo -e "${COLOR_CYAN}Building ExpoCLI...${COLOR_RESET}"
             mkdir -p build
             cd build
             if cmake .. && make -j4; then
                 cd ..
+                export EXPOCLI_BIN="./build/expocli"
                 echo ""
                 echo -e "${COLOR_GREEN}✓ Build successful!${COLOR_RESET}"
                 echo ""
@@ -70,15 +97,16 @@ init_tests() {
             echo ""
             echo -e "${COLOR_YELLOW}To build manually, run:${COLOR_RESET}"
             echo "  mkdir -p build && cd build && cmake .. && make"
+            echo ""
+            echo -e "${COLOR_YELLOW}Or ensure 'expocli' is installed and in your PATH${COLOR_RESET}"
             exit 1
         fi
     fi
 
-    # Verify binary is executable
-    if [ ! -x "$EXPOCLI_BIN" ]; then
-        echo -e "${COLOR_RED}ERROR: ExpoCLI binary is not executable${COLOR_RESET}"
+    # Verify binary is executable (only for local build)
+    if [ -f "$EXPOCLI_BIN" ] && [ ! -x "$EXPOCLI_BIN" ]; then
+        echo -e "${COLOR_YELLOW}Making binary executable...${COLOR_RESET}"
         chmod +x "$EXPOCLI_BIN"
-        echo -e "${COLOR_GREEN}Made binary executable${COLOR_RESET}"
     fi
 
     # Record start time

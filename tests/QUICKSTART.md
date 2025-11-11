@@ -16,12 +16,34 @@ cd /tmp
 ~/ExpoCLI/tests/run_tests.sh
 ```
 
+## Binary Detection
+
+The test script is **smart** about finding the ExpoCLI binary:
+
+1. **First**: Checks if `expocli` is in your PATH (installed system-wide)
+2. **Then**: Falls back to `./build/expocli` (local build)
+3. **Finally**: Offers to build it for you if not found
+
+You'll see which one it's using:
+```
+Working directory: /home/user/ExpoCLI
+Using expocli from PATH: /usr/local/bin/expocli
+```
+
+or
+
+```
+Working directory: /home/user/ExpoCLI
+Using local build: ./build/expocli
+```
+
 ## First Time Setup
 
-If the binary hasn't been built yet, the test script will:
+If the binary hasn't been built and isn't in PATH, the test script will:
 1. Detect the missing binary
-2. Ask if you want to build it automatically
-3. Build the project for you (if you answer 'y')
+2. Check if you have `cmake` installed
+3. Ask if you want to build it automatically
+4. Build the project for you (if you answer 'y')
 
 Example:
 ```
@@ -31,10 +53,14 @@ Example:
 
 Working directory: /home/user/ExpoCLI
 
-ERROR: ExpoCLI binary not found at ./build/expocli
-The binary needs to be built before running tests.
+ERROR: ExpoCLI binary not found
+The binary is not in PATH and not found at ./build/expocli
 
-Would you like to build it now? (y/n)
+Options:
+  1. Install expocli to your PATH, or
+  2. Build locally in ./build/
+
+Would you like to build it locally now? (y/n)
 ```
 
 Type `y` and press Enter, and the build will happen automatically!
