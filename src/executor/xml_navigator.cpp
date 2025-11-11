@@ -3,6 +3,7 @@
 #include <typeinfo>
 #include <functional>
 #include <regex>
+#include <set>
 
 namespace expocli {
 
@@ -381,6 +382,67 @@ pugi::xml_node XmlNavigator::findFirstElementByName(
 
     // Not found
     return pugi::xml_node();
+}
+
+int XmlNavigator::countMatchingPaths(
+    const pugi::xml_node& node,
+    const std::vector<std::string>& partialPath
+) {
+    if (partialPath.empty()) {
+        return 0;
+    }
+
+    // Helper to build full path from node to root
+    auto getNodePath = [](pugi::xml_node n) -> std::vector<std::string> {
+        std::vector<std::string> nodePath;
+        while (n && n.type() == pugi::node_element) {
+            nodePath.insert(nodePath.begin(), std::string(n.name()));
+            n = n.parent();
+        }
+        return nodePath;
+    };
+
+    // Helper to check if nodePath ends with targetPath
+    auto endsWithPath = [](const std::vector<std::string>& nodePath,
+                          const std::vector<std::string>& targetPath) -> bool {
+        if (nodePath.size() < targetPath.size()) {
+            return false;
+        }
+        size_t offset = nodePath.size() - targetPath.size();
+        for (size_t i = 0; i < targetPath.size(); ++i) {
+            if (nodePath[offset + i] != targetPath[i]) {
+                return false;
+            }
+        }
+        return true;
+    };
+
+    // Collect all unique full paths that match the partial path
+    std::set<std::vector<std::string>> uniquePaths;
+
+    std::function<void(const pugi::xml_node&)> searchTree =
+        [&](const pugi::xml_node& current) {
+            if (!current) {
+                return;
+            }
+
+            // Only check element nodes, but traverse all node types
+            if (current.type() == pugi::node_element) {
+                std::vector<std::string> nodePath = getNodePath(current);
+
+                if (endsWithPath(nodePath, partialPath)) {
+                    uniquePaths.insert(nodePath);
+                }
+            }
+
+            // Recurse to children regardless of node type
+            for (pugi::xml_node child : current.children()) {
+                searchTree(child);
+            }
+        };
+
+    searchTree(node);
+    return uniquePaths.size();
 }
 
 } // namespace expocli

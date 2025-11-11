@@ -138,7 +138,7 @@ void printUsage(const char* programName) {
     std::cout << "  CHECK <pattern>     Validate files matching pattern (e.g., /path/*.xml)\n\n";
 }
 
-void executeQuery(const std::string& query) {
+void executeQuery(const std::string& query, const expocli::AppContext* context = nullptr) {
     if (query.empty()) {
         return;
     }
@@ -151,6 +151,21 @@ void executeQuery(const std::string& query) {
         // Syntax analysis
         expocli::Parser parser(tokens);
         auto ast = parser.parse();
+
+        // Check for ambiguous attributes if in verbose mode
+        if (context && context->isVerbose()) {
+            auto ambiguous = expocli::QueryExecutor::checkForAmbiguousAttributes(*ast);
+            if (ambiguous.empty()) {
+                std::cout << "\033[32m✓ No ambiguous attributes found\033[0m\n\n";
+            } else {
+                std::cout << "\033[33m⚠ Ambiguous attribute(s): ";
+                for (size_t i = 0; i < ambiguous.size(); ++i) {
+                    if (i > 0) std::cout << ", ";
+                    std::cout << ambiguous[i];
+                }
+                std::cout << "\033[0m\n\n";
+            }
+        }
 
         // Execute query
         auto results = expocli::QueryExecutor::execute(*ast);
@@ -269,7 +284,7 @@ void interactiveMode() {
             // Check if it's a SET or SHOW command
             if (!commandHandler.handleCommand(query)) {
                 // Not a command, execute as a query
-                executeQuery(query);
+                executeQuery(query, &context);
                 std::cout << std::endl;
             }
 

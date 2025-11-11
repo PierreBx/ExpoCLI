@@ -25,6 +25,7 @@ enum class TokenType {
     XML,
     PREFIX,
     CHECK,
+    VERBOSE,
     IDENTIFIER,
     STRING_LITERAL,
     NUMBER,

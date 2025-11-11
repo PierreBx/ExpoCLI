@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root>
+    <section id="A">
+        <item>
+            <name>Item A1</name>
+            <value>100</value>
+        </item>
+        <item>
+            <name>Item A2</name>
+            <value>200</value>
+        </item>
+    </section>
+    <section id="B">
+        <item>
+            <name>Item B1</name>
+            <value>300</value>
+        </item>
+    </section>
+    <category>
+        <item>
+            <name>Category Item 1</name>
+            <value>400</value>
+        </item>
+    </category>
+</root>

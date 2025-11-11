@@ -67,6 +67,13 @@ public:
         const std::string& name
     );
 
+    // Check if a partial path (2+ components) is ambiguous in the XML tree
+    // Returns the count of unique matching paths
+    static int countMatchingPaths(
+        const pugi::xml_node& node,
+        const std::vector<std::string>& partialPath
+    );
+
 private:
 
     // Get value from node for comparison

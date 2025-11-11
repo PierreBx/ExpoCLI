@@ -242,9 +242,54 @@ run_test "ERR-003" \
     "XSD path not set"
 
 # ============================================================================
-# CATEGORY 11: HARD STRESS TEST - Complex Nested Structures at Scale
+# CATEGORY 11: VERBOSE Mode - Ambiguity Detection
 # ============================================================================
-print_category "11. HARD STRESS TEST - Enterprise Scale"
+print_category "11. VERBOSE Mode - Ambiguity Detection"
+
+run_test "VERB-001" \
+    "Detect ambiguous attribute" \
+    'SET VERBOSE; SELECT item.name FROM "./tests/data/truly_ambiguous.xml"; exit;' \
+    "⚠.*Ambiguous attribute.*item\.name"
+
+run_test "VERB-002" \
+    "Non-ambiguous with full path" \
+    'SET VERBOSE; SELECT section.item.name FROM "./tests/data/truly_ambiguous.xml"; exit;' \
+    "✓.*No ambiguous attributes found"
+
+run_test "VERB-003" \
+    "Ambiguous in company_ambiguous.xml" \
+    'SET VERBOSE; SELECT address.street FROM "./tests/data/company_ambiguous.xml"; exit;' \
+    "⚠.*Ambiguous attribute.*address\.street"
+
+run_test "VERB-004" \
+    "Non-ambiguous with specific path" \
+    'SET VERBOSE; SELECT store.address.street FROM "./tests/data/company_ambiguous.xml"; exit;' \
+    "✓.*No ambiguous attributes found"
+
+run_test "VERB-005" \
+    "Top-level attribute (never ambiguous)" \
+    'SET VERBOSE; SELECT name FROM "./tests/data/company_ambiguous.xml"; exit;' \
+    "✓.*No ambiguous attributes found"
+
+run_test "VERB-006" \
+    "Multiple ambiguous attributes" \
+    'SET VERBOSE; SELECT item.name, item.value FROM "./tests/data/truly_ambiguous.xml"; exit;' \
+    "⚠.*Ambiguous attribute.*item\.name.*item\.value"
+
+run_test "VERB-007" \
+    "Ambiguous in WHERE clause" \
+    'SET VERBOSE; SELECT name FROM "./tests/data/truly_ambiguous.xml" WHERE item.value > 200; exit;' \
+    "⚠.*Ambiguous attribute.*item\.value"
+
+run_test "VERB-008" \
+    "Mixed ambiguous and non-ambiguous" \
+    'SET VERBOSE; SELECT section.item.name, item.value FROM "./tests/data/truly_ambiguous.xml"; exit;' \
+    "⚠.*Ambiguous attribute.*item\.value"
+
+# ============================================================================
+# CATEGORY 12: HARD STRESS TEST - Complex Nested Structures at Scale
+# ============================================================================
+print_category "12. HARD STRESS TEST - Enterprise Scale"
 
 echo ""
 echo -e "${COLOR_BOLD}${COLOR_YELLOW}═══════════════════════════════════════════════════════════════${COLOR_RESET}"
@@ -259,6 +304,29 @@ if bash "$TEST_DIR/hard_test.sh"; then
     echo -e "${COLOR_GREEN}${COLOR_BOLD}✓ Hard stress test completed successfully${COLOR_RESET}"
 else
     echo -e "${COLOR_RED}${COLOR_BOLD}✗ Hard stress test failed${COLOR_RESET}"
+fi
+
+echo ""
+
+# ============================================================================
+# CATEGORY 13: HARDEST STRESS TEST - EXTREME SCALE
+# ============================================================================
+print_category "13. HARDEST STRESS TEST - EXTREME SCALE"
+
+echo ""
+echo -e "${COLOR_BOLD}${COLOR_YELLOW}═══════════════════════════════════════════════════════════════${COLOR_RESET}"
+echo -e "${COLOR_BOLD}${COLOR_YELLOW}  Running ULTIMATE stress test with 100 generated files       ${COLOR_RESET}"
+echo -e "${COLOR_BOLD}${COLOR_YELLOW}  Ultra-complex nested structures: 6-7 levels of nesting      ${COLOR_RESET}"
+echo -e "${COLOR_BOLD}${COLOR_YELLOW}  Each file ~1-4MB in size = ~100-400MB total test data       ${COLOR_RESET}"
+echo -e "${COLOR_BOLD}${COLOR_YELLOW}  This WILL take several minutes to complete...                ${COLOR_RESET}"
+echo -e "${COLOR_BOLD}${COLOR_YELLOW}═══════════════════════════════════════════════════════════════${COLOR_RESET}"
+echo ""
+
+# Run the hardest test script
+if bash "$TEST_DIR/hardest_test.sh"; then
+    echo -e "${COLOR_GREEN}${COLOR_BOLD}✓ HARDEST stress test completed successfully!${COLOR_RESET}"
+else
+    echo -e "${COLOR_RED}${COLOR_BOLD}✗ HARDEST stress test failed${COLOR_RESET}"
 fi
 
 echo ""

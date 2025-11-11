@@ -1,0 +1,302 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+    <!-- ULTRA-COMPLEX mega enterprise schema with 6+ levels of nesting -->
+    <!-- Designed for the HARDEST stress test with ~1MB file sizes -->
+    <xs:element name="megaEnterprise">
+        <xs:complexType>
+            <xs:sequence>
+                <!-- Corporate metadata -->
+                <xs:element name="corporation">
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element name="name" type="xs:string"/>
+                            <xs:element name="ticker" type="xs:string"/>
+                            <xs:element name="founded" type="xs:integer"/>
+                            <xs:element name="revenue" type="xs:decimal"/>
+                            <xs:element name="marketCap" type="xs:decimal"/>
+                            <xs:element name="publiclyTraded" type="xs:boolean"/>
+                            <xs:element name="headquarters" type="xs:string"/>
+                            <xs:element name="ceo" type="xs:string"/>
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
+
+                <!-- Global divisions with regional offices -->
+                <xs:element name="divisions">
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element name="division" minOccurs="1" maxOccurs="unbounded">
+                                <xs:complexType>
+                                    <xs:sequence>
+                                        <xs:element name="name" type="xs:string"/>
+                                        <xs:element name="region" type="xs:string"/>
+                                        <xs:element name="budget" type="xs:decimal"/>
+                                        <xs:element name="established" type="xs:integer"/>
+
+                                        <!-- Regional offices within division -->
+                                        <xs:element name="offices">
+                                            <xs:complexType>
+                                                <xs:sequence>
+                                                    <xs:element name="office" minOccurs="1" maxOccurs="unbounded">
+                                                        <xs:complexType>
+                                                            <xs:sequence>
+                                                                <xs:element name="city" type="xs:string"/>
+                                                                <xs:element name="country" type="xs:string"/>
+                                                                <xs:element name="address" type="xs:string"/>
+                                                                <xs:element name="squareFeet" type="xs:integer"/>
+                                                                <xs:element name="leased" type="xs:boolean"/>
+
+                                                                <!-- Departments within office -->
+                                                                <xs:element name="departments">
+                                                                    <xs:complexType>
+                                                                        <xs:sequence>
+                                                                            <xs:element name="department" minOccurs="1" maxOccurs="unbounded">
+                                                                                <xs:complexType>
+                                                                                    <xs:sequence>
+                                                                                        <xs:element name="name" type="xs:string"/>
+                                                                                        <xs:element name="headcount" type="xs:integer"/>
+                                                                                        <xs:element name="budget" type="xs:decimal"/>
+
+                                                                                        <!-- Teams within department -->
+                                                                                        <xs:element name="teams">
+                                                                                            <xs:complexType>
+                                                                                                <xs:sequence>
+                                                                                                    <xs:element name="team" minOccurs="0" maxOccurs="unbounded">
+                                                                                                        <xs:complexType>
+                                                                                                            <xs:sequence>
+                                                                                                                <xs:element name="name" type="xs:string"/>
+                                                                                                                <xs:element name="focus" type="xs:string"/>
+                                                                                                                <xs:element name="size" type="xs:integer"/>
+
+                                                                                                                <!-- Employees within team -->
+                                                                                                                <xs:element name="members">
+                                                                                                                    <xs:complexType>
+                                                                                                                        <xs:sequence>
+                                                                                                                            <xs:element name="member" minOccurs="0" maxOccurs="unbounded">
+                                                                                                                                <xs:complexType>
+                                                                                                                                    <xs:sequence>
+                                                                                                                                        <xs:element name="employeeId" type="xs:integer"/>
+                                                                                                                                        <xs:element name="name" type="xs:string"/>
+                                                                                                                                        <xs:element name="role" type="xs:string"/>
+                                                                                                                                        <xs:element name="level" type="xs:integer"/>
+                                                                                                                                        <xs:element name="salary" type="xs:decimal"/>
+                                                                                                                                        <xs:element name="bonus" type="xs:decimal"/>
+                                                                                                                                        <xs:element name="remote" type="xs:boolean"/>
+                                                                                                                                        <xs:element name="email" type="xs:string"/>
+
+                                                                                                                                        <!-- Certifications (Level 6) -->
+                                                                                                                                        <xs:element name="certifications">
+                                                                                                                                            <xs:complexType>
+                                                                                                                                                <xs:sequence>
+                                                                                                                                                    <xs:element name="certification" minOccurs="0" maxOccurs="unbounded">
+                                                                                                                                                        <xs:complexType>
+                                                                                                                                                            <xs:sequence>
+                                                                                                                                                                <xs:element name="title" type="xs:string"/>
+                                                                                                                                                                <xs:element name="issuer" type="xs:string"/>
+                                                                                                                                                                <xs:element name="year" type="xs:integer"/>
+                                                                                                                                                                <xs:element name="valid" type="xs:boolean"/>
+                                                                                                                                                                <xs:element name="score" type="xs:integer"/>
+                                                                                                                                                            </xs:sequence>
+                                                                                                                                                        </xs:complexType>
+                                                                                                                                                    </xs:element>
+                                                                                                                                                </xs:sequence>
+                                                                                                                                            </xs:complexType>
+                                                                                                                                        </xs:element>
+
+                                                                                                                                        <!-- Performance reviews (Level 6) -->
+                                                                                                                                        <xs:element name="reviews">
+                                                                                                                                            <xs:complexType>
+                                                                                                                                                <xs:sequence>
+                                                                                                                                                    <xs:element name="review" minOccurs="0" maxOccurs="unbounded">
+                                                                                                                                                        <xs:complexType>
+                                                                                                                                                            <xs:sequence>
+                                                                                                                                                                <xs:element name="year" type="xs:integer"/>
+                                                                                                                                                                <xs:element name="quarter" type="xs:integer"/>
+                                                                                                                                                                <xs:element name="rating" type="xs:integer"/>
+                                                                                                                                                                <xs:element name="promoted" type="xs:boolean"/>
+                                                                                                                                                                <xs:element name="comments" type="xs:string"/>
+                                                                                                                                                            </xs:sequence>
+                                                                                                                                                        </xs:complexType>
+                                                                                                                                                    </xs:element>
+                                                                                                                                                </xs:sequence>
+                                                                                                                                            </xs:complexType>
+                                                                                                                                        </xs:element>
+                                                                                                                                    </xs:sequence>
+                                                                                                                                </xs:complexType>
+                                                                                                                            </xs:element>
+                                                                                                                        </xs:sequence>
+                                                                                                                    </xs:complexType>
+                                                                                                                </xs:element>
+
+                                                                                                                <!-- Projects for team (Level 5) -->
+                                                                                                                <xs:element name="projects">
+                                                                                                                    <xs:complexType>
+                                                                                                                        <xs:sequence>
+                                                                                                                            <xs:element name="project" minOccurs="0" maxOccurs="unbounded">
+                                                                                                                                <xs:complexType>
+                                                                                                                                    <xs:sequence>
+                                                                                                                                        <xs:element name="code" type="xs:string"/>
+                                                                                                                                        <xs:element name="name" type="xs:string"/>
+                                                                                                                                        <xs:element name="budget" type="xs:decimal"/>
+                                                                                                                                        <xs:element name="priority" type="xs:integer"/>
+                                                                                                                                        <xs:element name="status" type="xs:string"/>
+
+                                                                                                                                        <!-- Sprints within project (Level 6) -->
+                                                                                                                                        <xs:element name="sprints">
+                                                                                                                                            <xs:complexType>
+                                                                                                                                                <xs:sequence>
+                                                                                                                                                    <xs:element name="sprint" minOccurs="0" maxOccurs="unbounded">
+                                                                                                                                                        <xs:complexType>
+                                                                                                                                                            <xs:sequence>
+                                                                                                                                                                <xs:element name="number" type="xs:integer"/>
+                                                                                                                                                                <xs:element name="startDate" type="xs:string"/>
+                                                                                                                                                                <xs:element name="endDate" type="xs:string"/>
+                                                                                                                                                                <xs:element name="velocity" type="xs:integer"/>
+                                                                                                                                                                <xs:element name="completed" type="xs:boolean"/>
+                                                                                                                                                            </xs:sequence>
+                                                                                                                                                        </xs:complexType>
+                                                                                                                                                    </xs:element>
+                                                                                                                                                </xs:sequence>
+                                                                                                                                            </xs:complexType>
+                                                                                                                                        </xs:element>
+                                                                                                                                    </xs:sequence>
+                                                                                                                                </xs:complexType>
+                                                                                                                            </xs:element>
+                                                                                                                        </xs:sequence>
+                                                                                                                    </xs:complexType>
+                                                                                                                </xs:element>
+                                                                                                            </xs:sequence>
+                                                                                                        </xs:complexType>
+                                                                                                    </xs:element>
+                                                                                                </xs:sequence>
+                                                                                            </xs:complexType>
+                                                                                        </xs:element>
+                                                                                    </xs:sequence>
+                                                                                </xs:complexType>
+                                                                            </xs:element>
+                                                                        </xs:sequence>
+                                                                    </xs:complexType>
+                                                                </xs:element>
+                                                            </xs:sequence>
+                                                        </xs:complexType>
+                                                    </xs:element>
+                                                </xs:sequence>
+                                            </xs:complexType>
+                                        </xs:element>
+                                    </xs:sequence>
+                                    <xs:attribute name="id" type="xs:string" use="required"/>
+                                </xs:complexType>
+                            </xs:element>
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
+
+                <!-- Product catalog with deep hierarchy -->
+                <xs:element name="catalog">
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element name="category" minOccurs="1" maxOccurs="unbounded">
+                                <xs:complexType>
+                                    <xs:sequence>
+                                        <xs:element name="name" type="xs:string"/>
+                                        <xs:element name="description" type="xs:string"/>
+
+                                        <!-- Subcategories -->
+                                        <xs:element name="subcategories">
+                                            <xs:complexType>
+                                                <xs:sequence>
+                                                    <xs:element name="subcategory" minOccurs="0" maxOccurs="unbounded">
+                                                        <xs:complexType>
+                                                            <xs:sequence>
+                                                                <xs:element name="name" type="xs:string"/>
+
+                                                                <!-- Products in subcategory -->
+                                                                <xs:element name="products">
+                                                                    <xs:complexType>
+                                                                        <xs:sequence>
+                                                                            <xs:element name="product" minOccurs="0" maxOccurs="unbounded">
+                                                                                <xs:complexType>
+                                                                                    <xs:sequence>
+                                                                                        <xs:element name="sku" type="xs:string"/>
+                                                                                        <xs:element name="name" type="xs:string"/>
+                                                                                        <xs:element name="price" type="xs:decimal"/>
+                                                                                        <xs:element name="cost" type="xs:decimal"/>
+                                                                                        <xs:element name="stock" type="xs:integer"/>
+                                                                                        <xs:element name="active" type="xs:boolean"/>
+
+                                                                                        <!-- Variants -->
+                                                                                        <xs:element name="variants">
+                                                                                            <xs:complexType>
+                                                                                                <xs:sequence>
+                                                                                                    <xs:element name="variant" minOccurs="0" maxOccurs="unbounded">
+                                                                                                        <xs:complexType>
+                                                                                                            <xs:sequence>
+                                                                                                                <xs:element name="color" type="xs:string"/>
+                                                                                                                <xs:element name="size" type="xs:string"/>
+                                                                                                                <xs:element name="weight" type="xs:decimal"/>
+                                                                                                                <xs:element name="available" type="xs:boolean"/>
+
+                                                                                                                <!-- Inventory locations (Level 6) -->
+                                                                                                                <xs:element name="inventory">
+                                                                                                                    <xs:complexType>
+                                                                                                                        <xs:sequence>
+                                                                                                                            <xs:element name="location" minOccurs="0" maxOccurs="unbounded">
+                                                                                                                                <xs:complexType>
+                                                                                                                                    <xs:sequence>
+                                                                                                                                        <xs:element name="warehouse" type="xs:string"/>
+                                                                                                                                        <xs:element name="zone" type="xs:string"/>
+                                                                                                                                        <xs:element name="quantity" type="xs:integer"/>
+                                                                                                                                        <xs:element name="reserved" type="xs:integer"/>
+                                                                                                                                    </xs:sequence>
+                                                                                                                                </xs:complexType>
+                                                                                                                            </xs:element>
+                                                                                                                        </xs:sequence>
+                                                                                                                    </xs:complexType>
+                                                                                                                </xs:element>
+                                                                                                            </xs:sequence>
+                                                                                                        </xs:complexType>
+                                                                                                    </xs:element>
+                                                                                                </xs:sequence>
+                                                                                            </xs:complexType>
+                                                                                        </xs:element>
+
+                                                                                        <!-- Customer reviews -->
+                                                                                        <xs:element name="customerReviews">
+                                                                                            <xs:complexType>
+                                                                                                <xs:sequence>
+                                                                                                    <xs:element name="customerReview" minOccurs="0" maxOccurs="unbounded">
+                                                                                                        <xs:complexType>
+                                                                                                            <xs:sequence>
+                                                                                                                <xs:element name="rating" type="xs:integer"/>
+                                                                                                                <xs:element name="title" type="xs:string"/>
+                                                                                                                <xs:element name="text" type="xs:string"/>
+                                                                                                                <xs:element name="verified" type="xs:boolean"/>
+                                                                                                                <xs:element name="helpful" type="xs:integer"/>
+                                                                                                            </xs:sequence>
+                                                                                                        </xs:complexType>
+                                                                                                    </xs:element>
+                                                                                                </xs:sequence>
+                                                                                            </xs:complexType>
+                                                                                        </xs:element>
+                                                                                    </xs:sequence>
+                                                                                </xs:complexType>
+                                                                            </xs:element>
+                                                                        </xs:sequence>
+                                                                    </xs:complexType>
+                                                                </xs:element>
+                                                            </xs:sequence>
+                                                        </xs:complexType>
+                                                    </xs:element>
+                                                </xs:sequence>
+                                            </xs:complexType>
+                                        </xs:element>
+                                    </xs:sequence>
+                                </xs:complexType>
+                            </xs:element>
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+</xs:schema>

@@ -331,4 +331,71 @@ std::vector<ResultRow> QueryExecutor::processFile(
     return results;
 }
 
+std::vector<std::string> QueryExecutor::checkForAmbiguousAttributes(const Query& query) {
+    std::vector<std::string> ambiguousAttrs;
+
+    // Get the first XML file from the query path to analyze structure
+    std::vector<std::string> xmlFiles = getXmlFiles(query.from_path);
+    if (xmlFiles.empty()) {
+        // No files to check
+        return ambiguousAttrs;
+    }
+
+    // Load the first file as a representative sample
+    auto doc = XmlLoader::load(xmlFiles[0]);
+    if (!doc) {
+        return ambiguousAttrs;
+    }
+
+    // Helper to format field path as string
+    auto pathToString = [](const FieldPath& field) -> std::string {
+        std::string result;
+        for (size_t i = 0; i < field.components.size(); ++i) {
+            if (i > 0) result += ".";
+            result += field.components[i];
+        }
+        return result;
+    };
+
+    // Check SELECT fields (only partial paths with 2+ components can be ambiguous)
+    for (const auto& field : query.select_fields) {
+        if (field.include_filename) continue; // FILE_NAME is never ambiguous
+        if (field.components.size() < 2) continue; // Top-level attributes are never ambiguous
+
+        int matchCount = XmlNavigator::countMatchingPaths(*doc, field.components);
+        if (matchCount > 1) {
+            ambiguousAttrs.push_back(pathToString(field));
+        }
+    }
+
+    // Check WHERE clause fields
+    if (query.where) {
+        std::function<void(const WhereExpr*)> checkWhereFields =
+            [&](const WhereExpr* expr) {
+                if (!expr) return;
+
+                if (const auto* condition = dynamic_cast<const WhereCondition*>(expr)) {
+                    const auto& field = condition->field;
+                    if (field.components.size() >= 2) {
+                        int matchCount = XmlNavigator::countMatchingPaths(*doc, field.components);
+                        if (matchCount > 1) {
+                            std::string fieldStr = pathToString(field);
+                            // Avoid duplicates
+                            if (std::find(ambiguousAttrs.begin(), ambiguousAttrs.end(), fieldStr) == ambiguousAttrs.end()) {
+                                ambiguousAttrs.push_back(fieldStr);
+                            }
+                        }
+                    }
+                } else if (const auto* logical = dynamic_cast<const WhereLogical*>(expr)) {
+                    checkWhereFields(logical->left.get());
+                    checkWhereFields(logical->right.get());
+                }
+            };
+
+        checkWhereFields(query.where.get());
+    }
+
+    return ambiguousAttrs;
+}
+
 } // namespace expocli

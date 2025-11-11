@@ -50,15 +50,31 @@ bool CommandHandler::handleSetCommand(const std::string& input) {
     Lexer lexer(input);
     auto tokens = lexer.tokenize();
 
-    // Expect: SET <XSD|DEST> <path>
-    if (tokens.size() < 3) {
-        std::cerr << "Error: SET command requires a parameter (XSD or DEST) and a path\n";
+    // Expect: SET <XSD|DEST|VERBOSE> <path>
+    if (tokens.size() < 2) {
+        std::cerr << "Error: SET command requires a parameter\n";
         std::cerr << "Usage: SET XSD /path/to/file.xsd\n";
         std::cerr << "       SET DEST /path/to/directory\n";
+        std::cerr << "       SET VERBOSE\n";
         return true;
     }
 
     TokenType paramType = tokens[1].type;
+
+    // Handle VERBOSE (no path required)
+    if (paramType == TokenType::VERBOSE) {
+        context_.setVerbose(true);
+        std::cout << "Verbose mode enabled. Queries will be checked for ambiguous attributes.\n";
+        return true;
+    }
+
+    // For XSD and DEST, require a path
+    if (tokens.size() < 3) {
+        std::cerr << "Error: SET command requires a path for XSD or DEST\n";
+        std::cerr << "Usage: SET XSD /path/to/file.xsd\n";
+        std::cerr << "       SET DEST /path/to/directory\n";
+        return true;
+    }
 
     // Collect path from remaining tokens
     std::string path;

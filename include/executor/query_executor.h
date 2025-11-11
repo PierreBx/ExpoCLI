@@ -17,6 +17,10 @@ public:
     // Execute the query and return results
     static std::vector<ResultRow> execute(const Query& query);
 
+    // Validate query for ambiguous attributes (used in VERBOSE mode)
+    // Returns a list of ambiguous attributes found
+    static std::vector<std::string> checkForAmbiguousAttributes(const Query& query);
+
 private:
     // Get all XML files from directory
     static std::vector<std::string> getXmlFiles(const std::string& path);

@@ -26,4 +26,12 @@ bool AppContext::hasDestPath() const {
     return dest_path_.has_value();
 }
 
+void AppContext::setVerbose(bool verbose) {
+    verbose_ = verbose;
+}
+
+bool AppContext::isVerbose() const {
+    return verbose_;
+}
+
 } // namespace expocli

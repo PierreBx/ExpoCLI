@@ -21,9 +21,14 @@ public:
     std::optional<std::string> getDestPath() const;
     bool hasDestPath() const;
 
+    // Verbose mode management
+    void setVerbose(bool verbose);
+    bool isVerbose() const;
+
 private:
     std::optional<std::string> xsd_path_;
     std::optional<std::string> dest_path_;
+    bool verbose_ = false;
 };
 
 } // namespace expocli
