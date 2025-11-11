@@ -166,8 +166,22 @@ printf "  %-12s %-45s " "[HARD-V01]" "Count company names = file count"
 QUERY_OUTPUT="$HARD_TEST_DIR/validation_company_count.out"
 echo -e "SELECT enterprise.company.name FROM \"$HARD_TEST_DATA/\";\nexit;" | $EXPOCLI_BIN > "$QUERY_OUTPUT" 2>&1
 
-# Count non-empty result lines (excluding headers, prompts, etc.)
-RESULT_COUNT=$(grep -v "^expocli>" "$QUERY_OUTPUT" | grep -v "^SELECT" | grep -v "^$" | grep -v "XSD path" | grep -E "^[A-Za-z0-9]" | wc -l)
+# Count non-empty result lines (excluding headers, prompts, status messages, etc.)
+# More robust filtering to exclude common status messages
+RESULT_COUNT=$(grep -v "^expocli>" "$QUERY_OUTPUT" | \
+    grep -v "^SELECT" | \
+    grep -v "^$" | \
+    grep -v "XSD path" | \
+    grep -v "row(s)" | \
+    grep -v "file(s)" | \
+    grep -v "Query" | \
+    grep -v "Processing" | \
+    grep -v "Loaded" | \
+    grep -v "^─" | \
+    grep -v "^═" | \
+    grep -v "^│" | \
+    grep -v "^║" | \
+    grep -E "^[A-Za-z0-9]" | wc -l)
 
 if [ "$RESULT_COUNT" -eq "$FILE_COUNT" ]; then
     TESTS_PASSED=$((TESTS_PASSED + 1))
@@ -184,7 +198,20 @@ printf "  %-12s %-45s " "[HARD-V02]" "Department query returns results"
 QUERY_OUTPUT="$HARD_TEST_DIR/validation_departments.out"
 echo -e "SELECT enterprise.departments.department.name FROM \"$HARD_TEST_DATA/\";\nexit;" | $EXPOCLI_BIN > "$QUERY_OUTPUT" 2>&1
 
-DEPT_COUNT=$(grep -v "^expocli>" "$QUERY_OUTPUT" | grep -v "^SELECT" | grep -v "^$" | grep -v "XSD path" | grep -E "^[A-Za-z0-9]" | wc -l)
+DEPT_COUNT=$(grep -v "^expocli>" "$QUERY_OUTPUT" | \
+    grep -v "^SELECT" | \
+    grep -v "^$" | \
+    grep -v "XSD path" | \
+    grep -v "row(s)" | \
+    grep -v "file(s)" | \
+    grep -v "Query" | \
+    grep -v "Processing" | \
+    grep -v "Loaded" | \
+    grep -v "^─" | \
+    grep -v "^═" | \
+    grep -v "^│" | \
+    grep -v "^║" | \
+    grep -E "^[A-Za-z0-9]" | wc -l)
 
 if [ "$DEPT_COUNT" -gt 0 ]; then
     TESTS_PASSED=$((TESTS_PASSED + 1))
@@ -204,8 +231,35 @@ QUERY_OUTPUT_FILTERED="$HARD_TEST_DIR/validation_filtered_employees.out"
 echo -e "SELECT enterprise.departments.department.employees.employee.name FROM \"$HARD_TEST_DATA/\";\nexit;" | $EXPOCLI_BIN > "$QUERY_OUTPUT_ALL" 2>&1
 echo -e "SELECT enterprise.departments.department.employees.employee.name FROM \"$HARD_TEST_DATA/\" WHERE enterprise.departments.department.employees.employee.salary > 80000;\nexit;" | $EXPOCLI_BIN > "$QUERY_OUTPUT_FILTERED" 2>&1
 
-ALL_COUNT=$(grep -v "^expocli>" "$QUERY_OUTPUT_ALL" | grep -v "^SELECT" | grep -v "^$" | grep -v "XSD path" | grep -E "^[A-Za-z]" | wc -l)
-FILTERED_COUNT=$(grep -v "^expocli>" "$QUERY_OUTPUT_FILTERED" | grep -v "^SELECT" | grep -v "^$" | grep -v "XSD path" | grep -E "^[A-Za-z]" | wc -l)
+ALL_COUNT=$(grep -v "^expocli>" "$QUERY_OUTPUT_ALL" | \
+    grep -v "^SELECT" | \
+    grep -v "^$" | \
+    grep -v "XSD path" | \
+    grep -v "row(s)" | \
+    grep -v "file(s)" | \
+    grep -v "Query" | \
+    grep -v "Processing" | \
+    grep -v "Loaded" | \
+    grep -v "^─" | \
+    grep -v "^═" | \
+    grep -v "^│" | \
+    grep -v "^║" | \
+    grep -E "^[A-Za-z]" | wc -l)
+
+FILTERED_COUNT=$(grep -v "^expocli>" "$QUERY_OUTPUT_FILTERED" | \
+    grep -v "^SELECT" | \
+    grep -v "^$" | \
+    grep -v "XSD path" | \
+    grep -v "row(s)" | \
+    grep -v "file(s)" | \
+    grep -v "Query" | \
+    grep -v "Processing" | \
+    grep -v "Loaded" | \
+    grep -v "^─" | \
+    grep -v "^═" | \
+    grep -v "^│" | \
+    grep -v "^║" | \
+    grep -E "^[A-Za-z]" | wc -l)
 
 if [ "$FILTERED_COUNT" -lt "$ALL_COUNT" ] && [ "$FILTERED_COUNT" -gt 0 ]; then
     TESTS_PASSED=$((TESTS_PASSED + 1))
@@ -222,7 +276,20 @@ printf "  %-12s %-45s " "[HARD-V04]" "LIMIT reduces result count"
 QUERY_OUTPUT="$HARD_TEST_DIR/validation_limit.out"
 echo -e "SELECT enterprise.company.name FROM \"$HARD_TEST_DATA/\" LIMIT 5;\nexit;" | $EXPOCLI_BIN > "$QUERY_OUTPUT" 2>&1
 
-LIMITED_COUNT=$(grep -v "^expocli>" "$QUERY_OUTPUT" | grep -v "^SELECT" | grep -v "^$" | grep -v "XSD path" | grep -E "^[A-Za-z0-9]" | wc -l)
+LIMITED_COUNT=$(grep -v "^expocli>" "$QUERY_OUTPUT" | \
+    grep -v "^SELECT" | \
+    grep -v "^$" | \
+    grep -v "XSD path" | \
+    grep -v "row(s)" | \
+    grep -v "file(s)" | \
+    grep -v "Query" | \
+    grep -v "Processing" | \
+    grep -v "Loaded" | \
+    grep -v "^─" | \
+    grep -v "^═" | \
+    grep -v "^│" | \
+    grep -v "^║" | \
+    grep -E "^[A-Za-z0-9]" | wc -l)
 
 if [ "$LIMITED_COUNT" -eq 5 ]; then
     TESTS_PASSED=$((TESTS_PASSED + 1))
@@ -239,8 +306,23 @@ printf "  %-12s %-45s " "[HARD-V05]" "Boolean filter works correctly"
 QUERY_OUTPUT="$HARD_TEST_DIR/validation_boolean.out"
 echo -e "SELECT enterprise.products.product.name FROM \"$HARD_TEST_DATA/\" WHERE enterprise.products.product.inStock = true;\nexit;" | $EXPOCLI_BIN > "$QUERY_OUTPUT" 2>&1
 
-# Just check it doesn't error and returns something
-if grep -qE "^[A-Za-z0-9]" "$QUERY_OUTPUT"; then
+# Check that query returns results (filter out status messages first)
+BOOL_COUNT=$(grep -v "^expocli>" "$QUERY_OUTPUT" | \
+    grep -v "^SELECT" | \
+    grep -v "^$" | \
+    grep -v "XSD path" | \
+    grep -v "row(s)" | \
+    grep -v "file(s)" | \
+    grep -v "Query" | \
+    grep -v "Processing" | \
+    grep -v "Loaded" | \
+    grep -v "^─" | \
+    grep -v "^═" | \
+    grep -v "^│" | \
+    grep -v "^║" | \
+    grep -E "^[A-Za-z0-9]" | wc -l)
+
+if [ "$BOOL_COUNT" -gt 0 ]; then
     TESTS_PASSED=$((TESTS_PASSED + 1))
     echo -e "${COLOR_GREEN}✓ PASS${COLOR_RESET} (boolean query executed)"
 else
@@ -277,4 +359,18 @@ echo ""
 echo -e "${COLOR_CYAN}Cleaning up test data...${COLOR_RESET}"
 rm -rf "$HARD_TEST_DIR"
 echo -e "${COLOR_GREEN}✓ Cleanup complete${COLOR_RESET}"
+echo ""
+
+# ============================================================================
+# Final Status Check
+# ============================================================================
+if [ $TESTS_FAILED -gt 0 ]; then
+    echo -e "${COLOR_RED}✗ Hard stress test completed with $TESTS_FAILED failed validation(s)${COLOR_RESET}"
+    echo -e "${COLOR_YELLOW}  Total: $TESTS_TOTAL | Passed: $TESTS_PASSED | Failed: $TESTS_FAILED${COLOR_RESET}"
+    echo ""
+    exit 1
+fi
+
+echo -e "${COLOR_GREEN}✓ Hard stress test completed successfully${COLOR_RESET}"
+echo -e "${COLOR_CYAN}  All $TESTS_TOTAL tests passed!${COLOR_RESET}"
 echo ""
