@@ -95,7 +95,6 @@ std::string DataGenerator::generateBoolean() {
 std::string DataGenerator::generateDate() {
     // Generate a random date in the past 5 years
     auto now = std::chrono::system_clock::now();
-    auto now_time_t = std::chrono::system_clock::to_time_t(now);
 
     std::uniform_int_distribution<int> days_dist(0, 365 * 5);
     int days_ago = days_dist(rng_);

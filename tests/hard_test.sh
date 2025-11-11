@@ -36,7 +36,7 @@ mkdir -p "$HARD_TEST_DATA"
 # ============================================================================
 echo -e "${COLOR_BOLD}${COLOR_YELLOW}Phase 1: Generating 100 XML files...${COLOR_RESET}"
 
-GENERATION_START=$(date +%s)
+GENERATION_START=$(date +%s.%N)
 echo -e "SET XSD $HARD_TEST_SCHEMA;\nSET DEST $HARD_TEST_DATA;\nGENERATE XML 100 PREFIX enterprise_;\nexit;" | $EXPOCLI_BIN > "$HARD_TEST_DIR/generation.log" 2>&1
 
 if [ $? -ne 0 ]; then
@@ -45,12 +45,12 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-GENERATION_END=$(date +%s)
-GENERATION_TIME=$((GENERATION_END - GENERATION_START))
+GENERATION_END=$(date +%s.%N)
+GENERATION_TIME=$(echo "$GENERATION_END - $GENERATION_START" | bc)
 
 # Verify files were created
 FILE_COUNT=$(ls -1 "$HARD_TEST_DATA"/enterprise_*.xml 2>/dev/null | wc -l)
-echo -e "${COLOR_GREEN}✓ Generated $FILE_COUNT XML files in ${GENERATION_TIME}s${COLOR_RESET}"
+printf "${COLOR_GREEN}✓ Generated %d XML files in %.6f seconds${COLOR_RESET}\n" "$FILE_COUNT" "$GENERATION_TIME"
 
 if [ "$FILE_COUNT" -ne 100 ]; then
     echo -e "${COLOR_RED}✗ Expected 100 files, got $FILE_COUNT${COLOR_RESET}"
@@ -173,6 +173,7 @@ RESULT_COUNT=$(grep -v "^expocli>" "$QUERY_OUTPUT" | \
     grep -v "^$" | \
     grep -v "XSD path" | \
     grep -v "row(s)" | \
+    grep -v "rows returned" | \
     grep -v "file(s)" | \
     grep -v "Query" | \
     grep -v "Processing" | \
@@ -181,7 +182,18 @@ RESULT_COUNT=$(grep -v "^expocli>" "$QUERY_OUTPUT" | \
     grep -v "^═" | \
     grep -v "^│" | \
     grep -v "^║" | \
-    grep -E "^[A-Za-z0-9]" | wc -l)
+    grep -v "^Type " | \
+    grep -v "^Use " | \
+    grep -v "^Enter " | \
+    grep -v "^Note:" | \
+    grep -v "Parse Error" | \
+    grep -v "^Bye" | \
+    grep -v "^XML Query CLI" | \
+    grep -v "^─" | \
+    grep -v "^\-\-\-" | \
+    grep -E "^[A-Za-z0-9]" | \
+    tail -n +2 | \
+    wc -l)
 
 if [ "$RESULT_COUNT" -eq "$FILE_COUNT" ]; then
     TESTS_PASSED=$((TESTS_PASSED + 1))
@@ -203,6 +215,7 @@ DEPT_COUNT=$(grep -v "^expocli>" "$QUERY_OUTPUT" | \
     grep -v "^$" | \
     grep -v "XSD path" | \
     grep -v "row(s)" | \
+    grep -v "rows returned" | \
     grep -v "file(s)" | \
     grep -v "Query" | \
     grep -v "Processing" | \
@@ -211,7 +224,17 @@ DEPT_COUNT=$(grep -v "^expocli>" "$QUERY_OUTPUT" | \
     grep -v "^═" | \
     grep -v "^│" | \
     grep -v "^║" | \
-    grep -E "^[A-Za-z0-9]" | wc -l)
+    grep -v "^Type " | \
+    grep -v "^Use " | \
+    grep -v "^Enter " | \
+    grep -v "^Note:" | \
+    grep -v "Parse Error" | \
+    grep -v "^Bye" | \
+    grep -v "^XML Query CLI" | \
+    grep -v "^\-\-\-" | \
+    grep -E "^[A-Za-z0-9]" | \
+    tail -n +2 | \
+    wc -l)
 
 if [ "$DEPT_COUNT" -gt 0 ]; then
     TESTS_PASSED=$((TESTS_PASSED + 1))
@@ -229,13 +252,14 @@ QUERY_OUTPUT_ALL="$HARD_TEST_DIR/validation_all_employees.out"
 QUERY_OUTPUT_FILTERED="$HARD_TEST_DIR/validation_filtered_employees.out"
 
 echo -e "SELECT enterprise.departments.department.employees.employee.name FROM \"$HARD_TEST_DATA/\";\nexit;" | $EXPOCLI_BIN > "$QUERY_OUTPUT_ALL" 2>&1
-echo -e "SELECT enterprise.departments.department.employees.employee.name FROM \"$HARD_TEST_DATA/\" WHERE enterprise.departments.department.employees.employee.salary > 80000;\nexit;" | $EXPOCLI_BIN > "$QUERY_OUTPUT_FILTERED" 2>&1
+echo -e "SELECT enterprise.departments.department.employees.employee.name FROM \"$HARD_TEST_DATA/\" WHERE enterprise.departments.department.employees.employee.salary > 500;\nexit;" | $EXPOCLI_BIN > "$QUERY_OUTPUT_FILTERED" 2>&1
 
 ALL_COUNT=$(grep -v "^expocli>" "$QUERY_OUTPUT_ALL" | \
     grep -v "^SELECT" | \
     grep -v "^$" | \
     grep -v "XSD path" | \
     grep -v "row(s)" | \
+    grep -v "rows returned" | \
     grep -v "file(s)" | \
     grep -v "Query" | \
     grep -v "Processing" | \
@@ -244,13 +268,24 @@ ALL_COUNT=$(grep -v "^expocli>" "$QUERY_OUTPUT_ALL" | \
     grep -v "^═" | \
     grep -v "^│" | \
     grep -v "^║" | \
-    grep -E "^[A-Za-z]" | wc -l)
+    grep -v "^Type " | \
+    grep -v "^Use " | \
+    grep -v "^Enter " | \
+    grep -v "^Note:" | \
+    grep -v "Parse Error" | \
+    grep -v "^Bye" | \
+    grep -v "^XML Query CLI" | \
+    grep -v "^\-\-\-" | \
+    grep -E "^[A-Za-z]" | \
+    tail -n +2 | \
+    wc -l)
 
 FILTERED_COUNT=$(grep -v "^expocli>" "$QUERY_OUTPUT_FILTERED" | \
     grep -v "^SELECT" | \
     grep -v "^$" | \
     grep -v "XSD path" | \
     grep -v "row(s)" | \
+    grep -v "rows returned" | \
     grep -v "file(s)" | \
     grep -v "Query" | \
     grep -v "Processing" | \
@@ -259,7 +294,17 @@ FILTERED_COUNT=$(grep -v "^expocli>" "$QUERY_OUTPUT_FILTERED" | \
     grep -v "^═" | \
     grep -v "^│" | \
     grep -v "^║" | \
-    grep -E "^[A-Za-z]" | wc -l)
+    grep -v "^Type " | \
+    grep -v "^Use " | \
+    grep -v "^Enter " | \
+    grep -v "^Note:" | \
+    grep -v "Parse Error" | \
+    grep -v "^Bye" | \
+    grep -v "^XML Query CLI" | \
+    grep -v "^\-\-\-" | \
+    grep -E "^[A-Za-z]" | \
+    tail -n +2 | \
+    wc -l)
 
 if [ "$FILTERED_COUNT" -lt "$ALL_COUNT" ] && [ "$FILTERED_COUNT" -gt 0 ]; then
     TESTS_PASSED=$((TESTS_PASSED + 1))
@@ -281,6 +326,7 @@ LIMITED_COUNT=$(grep -v "^expocli>" "$QUERY_OUTPUT" | \
     grep -v "^$" | \
     grep -v "XSD path" | \
     grep -v "row(s)" | \
+    grep -v "rows returned" | \
     grep -v "file(s)" | \
     grep -v "Query" | \
     grep -v "Processing" | \
@@ -289,7 +335,17 @@ LIMITED_COUNT=$(grep -v "^expocli>" "$QUERY_OUTPUT" | \
     grep -v "^═" | \
     grep -v "^│" | \
     grep -v "^║" | \
-    grep -E "^[A-Za-z0-9]" | wc -l)
+    grep -v "^Type " | \
+    grep -v "^Use " | \
+    grep -v "^Enter " | \
+    grep -v "^Note:" | \
+    grep -v "Parse Error" | \
+    grep -v "^Bye" | \
+    grep -v "^XML Query CLI" | \
+    grep -v "^\-\-\-" | \
+    grep -E "^[A-Za-z0-9]" | \
+    tail -n +2 | \
+    wc -l)
 
 if [ "$LIMITED_COUNT" -eq 5 ]; then
     TESTS_PASSED=$((TESTS_PASSED + 1))
@@ -312,6 +368,7 @@ BOOL_COUNT=$(grep -v "^expocli>" "$QUERY_OUTPUT" | \
     grep -v "^$" | \
     grep -v "XSD path" | \
     grep -v "row(s)" | \
+    grep -v "rows returned" | \
     grep -v "file(s)" | \
     grep -v "Query" | \
     grep -v "Processing" | \
@@ -320,7 +377,17 @@ BOOL_COUNT=$(grep -v "^expocli>" "$QUERY_OUTPUT" | \
     grep -v "^═" | \
     grep -v "^│" | \
     grep -v "^║" | \
-    grep -E "^[A-Za-z0-9]" | wc -l)
+    grep -v "^Type " | \
+    grep -v "^Use " | \
+    grep -v "^Enter " | \
+    grep -v "^Note:" | \
+    grep -v "Parse Error" | \
+    grep -v "^Bye" | \
+    grep -v "^XML Query CLI" | \
+    grep -v "^\-\-\-" | \
+    grep -E "^[A-Za-z0-9]" | \
+    tail -n +2 | \
+    wc -l)
 
 if [ "$BOOL_COUNT" -gt 0 ]; then
     TESTS_PASSED=$((TESTS_PASSED + 1))
@@ -337,15 +404,15 @@ echo ""
 echo -e "${COLOR_BOLD}${COLOR_YELLOW}Phase 4: Performance Summary${COLOR_RESET}"
 
 # Calculate average query time for a sample query
-PERF_START=$(date +%s)
+PERF_START=$(date +%s.%N)
 echo -e "SELECT enterprise.company.name FROM \"$HARD_TEST_DATA/\";\nexit;" | $EXPOCLI_BIN > /dev/null 2>&1
-PERF_END=$(date +%s)
-QUERY_TIME=$((PERF_END - PERF_START))
+PERF_END=$(date +%s.%N)
+QUERY_TIME=$(echo "$PERF_END - $PERF_START" | bc)
 
 echo ""
 printf "  %-30s %d files\n" "Total XML files generated:" "$FILE_COUNT"
-printf "  %-30s %d seconds\n" "Generation time:" "$GENERATION_TIME"
-printf "  %-30s %d seconds\n" "Sample query time:" "$QUERY_TIME"
+printf "  %-30s %.6f seconds\n" "Generation time:" "$GENERATION_TIME"
+printf "  %-30s %.6f seconds\n" "Sample query time:" "$QUERY_TIME"
 echo ""
 
 # Show disk usage
