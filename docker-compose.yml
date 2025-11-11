@@ -1,7 +1,5 @@
-version: '3.8'
-
 services:
-  xml-query-cli:
+  expocli:
     image: expocli_image
     build:
       context: .

@@ -23,7 +23,7 @@ fi
 # Check if we need to build the image (try to run a simple test)
 check_and_build_image() {
     cd "${SCRIPT_DIR}"
-    if ! docker compose run --rm --no-TTY xml-query-cli true 2>/dev/null; then
+    if ! docker compose run --rm --no-TTY expocli true 2>/dev/null; then
         echo "[expocli] Building Docker image..." >&2
         docker compose build >&2
         echo "[expocli] Docker image built successfully." >&2
@@ -33,12 +33,12 @@ check_and_build_image() {
 # Check if binary exists and build if needed
 check_and_build_binary() {
     cd "${SCRIPT_DIR}"
-    if ! docker compose run --rm --no-TTY xml-query-cli test -f "${CONTAINER_BINARY}" 2>/dev/null; then
+    if ! docker compose run --rm --no-TTY expocli test -f "${CONTAINER_BINARY}" 2>/dev/null; then
         echo "[expocli] Compiling expocli binary..." >&2
-        docker compose run --rm --no-TTY xml-query-cli bash -c \
+        docker compose run --rm --no-TTY expocli bash -c \
             "cd ${CONTAINER_BUILD_DIR} && cmake .. >/dev/null 2>&1 && make >/dev/null 2>&1" >&2
 
-        if docker compose run --rm --no-TTY xml-query-cli test -f "${CONTAINER_BINARY}" 2>/dev/null; then
+        if docker compose run --rm --no-TTY expocli test -f "${CONTAINER_BINARY}" 2>/dev/null; then
             echo "[expocli] Compilation successful." >&2
         else
             echo "Error: Failed to compile expocli." >&2
@@ -72,7 +72,7 @@ main() {
     docker compose run --rm ${TTY_FLAG} \
         -v "${HOST_CWD}:/workspace:rw" \
         -w /workspace \
-        xml-query-cli \
+        expocli \
         ${CONTAINER_BINARY} "$@"
 
     exit $?

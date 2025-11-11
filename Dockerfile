@@ -1,4 +1,4 @@
-# C++ Development Environment for XML Query CLI
+# C++ Development Environment for expocli
 FROM ubuntu:22.04
 
 # Avoid prompts from apt

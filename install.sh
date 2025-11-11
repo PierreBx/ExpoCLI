@@ -121,7 +121,7 @@ else
 
         # Step 1: Stop any running containers
         echo -e "${BLUE}[1/4]${NC} Stopping any running containers..."
-        CONTAINER_NAME="xml-query-dev"
+        CONTAINER_NAME="expocli_container"
         if docker ps -q -f name="${CONTAINER_NAME}" | grep -q .; then
             docker compose down 2>/dev/null || true
             echo -e "${GREEN}✓${NC} Stopped running container"
@@ -139,16 +139,16 @@ else
         # Step 3: Clean old build directory
         echo ""
         echo -e "${BLUE}[3/4]${NC} Cleaning old build artifacts..."
-        docker compose run --rm --no-TTY xml-query-cli bash -c "rm -rf /app/build" 2>/dev/null || true
+        docker compose run --rm --no-TTY expocli bash -c "rm -rf /app/build" 2>/dev/null || true
         echo -e "${GREEN}✓${NC} Build directory cleaned"
 
         # Step 4: Compile the binary with latest code
         echo ""
         echo -e "${BLUE}[4/4]${NC} Compiling expocli with latest source code..."
-        docker compose run --rm --no-TTY xml-query-cli bash -c \
+        docker compose run --rm --no-TTY expocli bash -c \
             "mkdir -p /app/build && cd /app/build && cmake .. >/dev/null 2>&1 && make" 2>&1
 
-        if docker compose run --rm --no-TTY xml-query-cli test -f /app/build/expocli 2>/dev/null; then
+        if docker compose run --rm --no-TTY expocli test -f /app/build/expocli 2>/dev/null; then
             echo -e "${GREEN}✓${NC} Compilation successful"
         else
             echo -e "${YELLOW}⚠${NC}  Compilation may have failed, but installation continues"
@@ -163,7 +163,7 @@ else
         echo ""
 
         # Ensure Docker image exists
-        if ! docker compose run --rm --no-TTY xml-query-cli true 2>/dev/null; then
+        if ! docker compose run --rm --no-TTY expocli true 2>/dev/null; then
             echo -e "${BLUE}[1/2]${NC} Docker image not found, building..."
             docker compose build
             echo -e "${GREEN}✓${NC} Docker image built successfully"
@@ -172,16 +172,16 @@ else
 
         # Step 1: Clean old build directory
         echo -e "${BLUE}[1/2]${NC} Cleaning old build artifacts..."
-        docker compose run --rm --no-TTY xml-query-cli bash -c "rm -rf /app/build" 2>/dev/null || true
+        docker compose run --rm --no-TTY expocli bash -c "rm -rf /app/build" 2>/dev/null || true
         echo -e "${GREEN}✓${NC} Build directory cleaned"
 
         # Step 2: Compile the binary with latest code
         echo ""
         echo -e "${BLUE}[2/2]${NC} Compiling expocli with latest source code..."
-        docker compose run --rm --no-TTY xml-query-cli bash -c \
+        docker compose run --rm --no-TTY expocli bash -c \
             "mkdir -p /app/build && cd /app/build && cmake .. >/dev/null 2>&1 && make" 2>&1
 
-        if docker compose run --rm --no-TTY xml-query-cli test -f /app/build/expocli 2>/dev/null; then
+        if docker compose run --rm --no-TTY expocli test -f /app/build/expocli 2>/dev/null; then
             echo -e "${GREEN}✓${NC} Compilation successful"
         else
             echo -e "${YELLOW}⚠${NC}  Compilation may have failed, but installation continues"
