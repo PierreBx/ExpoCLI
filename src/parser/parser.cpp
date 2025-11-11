@@ -575,12 +575,22 @@ void Parser::parseGroupByClause(Query& query) {
     expect(TokenType::GROUP, "Expected GROUP keyword");
     expect(TokenType::BY, "Expected BY keyword after GROUP");
 
-    // Parse field to group by
+    // Parse field to group by (can be dotted path like dept.name)
     if (peek().type != TokenType::IDENTIFIER) {
         throw ParseError("Expected field name after GROUP BY");
     }
 
     std::string fieldName = advance().value;
+
+    // Check for dot-separated field path
+    while (peek().type == TokenType::DOT) {
+        advance(); // consume dot
+        if (peek().type != TokenType::IDENTIFIER) {
+            throw ParseError("Expected identifier after '.' in GROUP BY field");
+        }
+        fieldName += "." + advance().value;
+    }
+
     query.group_by_fields.push_back(fieldName);
 
     // Support multiple GROUP BY fields separated by commas
@@ -589,6 +599,16 @@ void Parser::parseGroupByClause(Query& query) {
             throw ParseError("Expected field name after comma in GROUP BY");
         }
         fieldName = advance().value;
+
+        // Check for dot-separated field path
+        while (peek().type == TokenType::DOT) {
+            advance(); // consume dot
+            if (peek().type != TokenType::IDENTIFIER) {
+                throw ParseError("Expected identifier after '.' in GROUP BY field");
+            }
+            fieldName += "." + advance().value;
+        }
+
         query.group_by_fields.push_back(fieldName);
     }
 }

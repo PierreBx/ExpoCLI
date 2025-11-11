@@ -242,8 +242,136 @@ std::vector<ResultRow> QueryExecutor::processFileWithForClauses(
 
             aggregatedResults.push_back(aggregatedRow);
             return aggregatedResults;
+        } else {
+            // Handle GROUP BY aggregations
+            // Group results by GROUP BY field values
+            std::map<std::string, std::vector<ResultRow>> groups;
+
+            for (const auto& row : results) {
+                // Build group key from GROUP BY fields
+                std::string groupKey;
+                for (const auto& groupField : query.group_by_fields) {
+                    std::string groupByFieldName = "__GROUP_BY__" + groupField;
+                    for (const auto& [name, val] : row) {
+                        if (name == groupByFieldName) {
+                            if (!groupKey.empty()) groupKey += "|||";
+                            groupKey += val;
+                            break;
+                        }
+                    }
+                }
+                groups[groupKey].push_back(row);
+            }
+
+            // For each group, compute aggregations
+            for (const auto& [groupKey, groupRows] : groups) {
+                ResultRow aggregatedRow;
+
+                // First, add the GROUP BY field values to the result
+                size_t groupFieldIndex = 0;
+                std::string remainingKey = groupKey;
+                for (const auto& groupField : query.group_by_fields) {
+                    // Extract value from group key
+                    std::string groupValue;
+                    size_t pos = remainingKey.find("|||");
+                    if (pos != std::string::npos) {
+                        groupValue = remainingKey.substr(0, pos);
+                        remainingKey = remainingKey.substr(pos + 3);
+                    } else {
+                        groupValue = remainingKey;
+                    }
+
+                    // Add to result row (use the field name directly, not the __GROUP_BY__ prefix)
+                    aggregatedRow.push_back({groupField, groupValue});
+                    groupFieldIndex++;
+                }
+
+                // Process each SELECT field
+                for (const auto& field : query.select_fields) {
+                    if (field.aggregate != AggregateFunc::NONE) {
+                        std::string fieldName = field.alias.empty() ?
+                            (std::string(field.aggregate == AggregateFunc::COUNT ? "COUNT" :
+                                        field.aggregate == AggregateFunc::SUM ? "SUM" :
+                                        field.aggregate == AggregateFunc::AVG ? "AVG" :
+                                        field.aggregate == AggregateFunc::MIN ? "MIN" : "MAX") +
+                             "(" + field.aggregate_arg + ")") : field.alias;
+
+                        // Collect values from this group
+                        std::vector<std::string> values;
+                        for (const auto& row : groupRows) {
+                            for (const auto& [name, val] : row) {
+                                // Match field name, excluding __GROUP_BY__ fields
+                                if (name.find("__GROUP_BY__") != 0 &&
+                                    (name == fieldName || name.find(field.aggregate_arg) != std::string::npos)) {
+                                    values.push_back(val);
+                                    break;
+                                }
+                            }
+                        }
+
+                        // Apply aggregation function
+                        std::string aggregatedValue;
+                        switch (field.aggregate) {
+                            case AggregateFunc::COUNT:
+                                aggregatedValue = std::to_string(values.size());
+                                break;
+                            case AggregateFunc::SUM: {
+                                double sum = 0;
+                                for (const auto& v : values) {
+                                    try {
+                                        sum += std::stod(v);
+                                    } catch (...) {}
+                                }
+                                aggregatedValue = std::to_string(sum);
+                                break;
+                            }
+                            case AggregateFunc::AVG: {
+                                double sum = 0;
+                                size_t count = 0;
+                                for (const auto& v : values) {
+                                    try {
+                                        sum += std::stod(v);
+                                        count++;
+                                    } catch (...) {}
+                                }
+                                aggregatedValue = count > 0 ? std::to_string(sum / count) : "0";
+                                break;
+                            }
+                            case AggregateFunc::MIN: {
+                                double minVal = std::numeric_limits<double>::max();
+                                for (const auto& v : values) {
+                                    try {
+                                        double val = std::stod(v);
+                                        if (val < minVal) minVal = val;
+                                    } catch (...) {}
+                                }
+                                aggregatedValue = minVal == std::numeric_limits<double>::max() ? "0" : std::to_string(minVal);
+                                break;
+                            }
+                            case AggregateFunc::MAX: {
+                                double maxVal = std::numeric_limits<double>::lowest();
+                                for (const auto& v : values) {
+                                    try {
+                                        double val = std::stod(v);
+                                        if (val > maxVal) maxVal = val;
+                                    } catch (...) {}
+                                }
+                                aggregatedValue = maxVal == std::numeric_limits<double>::lowest() ? "0" : std::to_string(maxVal);
+                                break;
+                            }
+                            default:
+                                aggregatedValue = "0";
+                        }
+
+                        aggregatedRow.push_back({fieldName, aggregatedValue});
+                    }
+                }
+
+                aggregatedResults.push_back(aggregatedRow);
+            }
+
+            return aggregatedResults;
         }
-        // TODO: Handle GROUP BY aggregations
     }
 
     return results;
@@ -270,6 +398,40 @@ void QueryExecutor::processNestedForClauses(
 
         // Extract SELECT fields using variable context
         ResultRow row;
+
+        // If we have GROUP BY, also include GROUP BY fields in the row for grouping
+        // These will be used to group results before aggregation
+        if (query.has_aggregates && !query.group_by_fields.empty()) {
+            for (const auto& groupField : query.group_by_fields) {
+                // Resolve the group by field value
+                FieldPath groupPath;
+                // Parse the group field (could be simple or dotted like dept.name)
+                std::string component;
+                for (char c : groupField) {
+                    if (c == '.') {
+                        if (!component.empty()) {
+                            groupPath.components.push_back(component);
+                            component.clear();
+                        }
+                    } else {
+                        component += c;
+                    }
+                }
+                if (!component.empty()) {
+                    groupPath.components.push_back(component);
+                }
+
+                // Check if it's a variable reference
+                if (!groupPath.components.empty() && query.isForVariable(groupPath.components[0])) {
+                    groupPath.is_variable_ref = true;
+                    groupPath.variable_name = groupPath.components[0];
+                }
+
+                std::string groupValue = resolveFieldWithContext(groupPath, varContext, positionContext, currentContext, query);
+                row.push_back({"__GROUP_BY__" + groupField, groupValue});
+            }
+        }
+
         for (const auto& field : query.select_fields) {
             std::string fieldName;
             std::string value;
