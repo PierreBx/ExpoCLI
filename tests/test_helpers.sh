@@ -27,14 +27,17 @@ export TEST_OUTPUT_DIR="$TEST_DIR/output"
 export TEST_LOG_DIR="$TEST_DIR/logs"
 
 # Detect expocli binary location with multiple strategies
-# Priority order:
-# 1. expocli.sh wrapper script in project root
+# Priority order for testing (wrapper doesn't support piped stdin):
+# 1. ./build/expocli local build (best for testing)
 # 2. expocli command in PATH
-# 3. ./build/expocli local build
-if [ -f "./expocli.sh" ]; then
-    export EXPOCLI_BIN="./expocli.sh"
+# 3. ./expocli.sh wrapper script (fallback, may not work with tests)
+if [ -f "./build/expocli" ]; then
+    export EXPOCLI_BIN="./build/expocli"
 elif command -v expocli &> /dev/null; then
     export EXPOCLI_BIN="expocli"
+elif [ -f "./expocli.sh" ]; then
+    export EXPOCLI_BIN="./expocli.sh"
+    export USING_WRAPPER="true"
 else
     export EXPOCLI_BIN="./build/expocli"
 fi
@@ -50,12 +53,14 @@ init_tests() {
     echo -e "${COLOR_CYAN}Working directory: $(pwd)${COLOR_RESET}"
 
     # Show which binary will be used
-    if [ -f "./expocli.sh" ]; then
-        echo -e "${COLOR_GREEN}Using wrapper script: ./expocli.sh${COLOR_RESET}"
-    elif command -v expocli &> /dev/null; then
+    if [ "$EXPOCLI_BIN" = "./build/expocli" ]; then
+        echo -e "${COLOR_GREEN}Using local build: $EXPOCLI_BIN${COLOR_RESET}"
+    elif command -v expocli &> /dev/null && [ "$EXPOCLI_BIN" = "expocli" ]; then
         echo -e "${COLOR_GREEN}Using expocli from PATH: $(which expocli)${COLOR_RESET}"
-    else
-        echo -e "${COLOR_CYAN}Using local build: $EXPOCLI_BIN${COLOR_RESET}"
+    elif [ "$USING_WRAPPER" = "true" ]; then
+        echo -e "${COLOR_YELLOW}Using wrapper script: ./expocli.sh${COLOR_RESET}"
+        echo -e "${COLOR_YELLOW}Warning: Docker wrapper may not work with piped test input${COLOR_RESET}"
+        echo -e "${COLOR_YELLOW}For reliable testing, build the local binary: mkdir -p build && cd build && cmake .. && make${COLOR_RESET}"
     fi
     echo ""
 
@@ -64,9 +69,9 @@ init_tests() {
     mkdir -p "$TEST_OUTPUT_DIR" "$TEST_LOG_DIR"
 
     # Check if binary exists or is available
-    if [ ! -f "./expocli.sh" ] && ! command -v expocli &> /dev/null && [ ! -f "$EXPOCLI_BIN" ]; then
+    if [ ! -f "./build/expocli" ] && ! command -v expocli &> /dev/null && [ ! -f "./expocli.sh" ]; then
         echo -e "${COLOR_RED}ERROR: ExpoCLI binary not found${COLOR_RESET}"
-        echo -e "${COLOR_YELLOW}The binary is not in PATH and not found at $EXPOCLI_BIN${COLOR_RESET}"
+        echo -e "${COLOR_YELLOW}No binary found in: ./build/expocli, PATH, or ./expocli.sh${COLOR_RESET}"
         echo ""
         echo "Options:"
         echo "  1. Install expocli to your PATH, or"
