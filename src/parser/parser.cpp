@@ -24,6 +24,11 @@ std::unique_ptr<Query> Parser::parse() {
 
     query->from_path = parseFilePath();
 
+    // Parse optional FOR clauses (can have multiple for nested iteration)
+    while (check(TokenType::FOR)) {
+        query->for_clauses.push_back(parseForClause());
+    }
+
     // Parse optional WHERE clause
     if (match(TokenType::WHERE)) {
         query->where = parseWhereClause();
@@ -41,7 +46,8 @@ std::unique_ptr<Query> Parser::parse() {
 
     // Ensure we're at the end
     if (!isAtEnd() && peek().type != TokenType::END_OF_INPUT) {
-        throw ParseError("Unexpected tokens after query");
+        std::string tokenInfo = "token: " + peek().value + " (type: " + std::to_string(static_cast<int>(peek().type)) + ")";
+        throw ParseError("Unexpected tokens after query - " + tokenInfo);
     }
 
     return query;
@@ -133,6 +139,7 @@ std::string Parser::parseFilePath() {
         if (current.type == TokenType::WHERE ||
             current.type == TokenType::ORDER ||
             current.type == TokenType::LIMIT ||
+            current.type == TokenType::FOR ||
             current.type == TokenType::END_OF_INPUT) {
             break;
         }
@@ -154,6 +161,28 @@ std::string Parser::parseFilePath() {
     }
 
     return path;
+}
+
+// Parse FOR...IN clause
+ForClause Parser::parseForClause() {
+    ForClause forClause;
+
+    // Expect FOR keyword
+    expect(TokenType::FOR, "Expected FOR keyword");
+
+    // Expect variable name (identifier)
+    if (peek().type != TokenType::IDENTIFIER) {
+        throw ParseError("Expected variable name after FOR");
+    }
+    forClause.variable = advance().value;
+
+    // Expect IN keyword
+    expect(TokenType::IN, "Expected IN keyword after variable name");
+
+    // Parse field path
+    forClause.path = parseFieldPath();
+
+    return forClause;
 }
 
 // Parse WHERE clause (entry point)

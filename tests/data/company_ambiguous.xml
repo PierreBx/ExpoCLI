@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<company>
+    <name>TechCorp</name>
+    <store>
+        <name>Downtown Store</name>
+        <address>
+            <street>123 Main St</street>
+            <city>Springfield</city>
+        </address>
+        <manager>
+            <name>John Doe</name>
+        </manager>
+    </store>
+    <store>
+        <name>Uptown Store</name>
+        <address>
+            <street>456 Oak Ave</street>
+            <city>Springfield</city>
+        </address>
+        <manager>
+            <name>Jane Smith</name>
+        </manager>
+    </store>
+    <employee>
+        <name>Bob Wilson</name>
+        <address>
+            <street>789 Elm St</street>
+            <city>Springfield</city>
+        </address>
+    </employee>
+</company>

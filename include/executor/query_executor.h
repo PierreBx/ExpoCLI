@@ -57,6 +57,14 @@ private:
         const Query& query
     );
 
+    // Process a single XML file with FOR clause context binding
+    static std::vector<ResultRow> processFileWithForClauses(
+        const std::string& filepath,
+        const Query& query,
+        const pugi::xml_document& doc,
+        const std::string& filename
+    );
+
     // Execute query with multi-threading
     static std::vector<ResultRow> executeMultithreaded(
         const std::vector<std::string>& xmlFiles,

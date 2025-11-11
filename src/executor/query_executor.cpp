@@ -121,6 +121,102 @@ std::vector<std::string> QueryExecutor::getXmlFiles(const std::string& path) {
     return xmlFiles;
 }
 
+// Process a single file with FOR clause context binding
+std::vector<ResultRow> QueryExecutor::processFileWithForClauses(
+    const std::string& filepath,
+    const Query& query,
+    const pugi::xml_document& doc,
+    const std::string& filename
+) {
+    std::vector<ResultRow> results;
+
+    // FOR clause processing with nested iteration
+    // Phase 1: Support single-level FOR clause
+    // Example: FOR emp IN employee
+    //   - Find all <employee> nodes
+    //   - For each employee node, evaluate SELECT fields relative to that node
+
+    if (query.for_clauses.empty()) {
+        // Should not reach here - caller should check
+        return results;
+    }
+
+    // Process first FOR clause (Phase 1: single FOR clause support)
+    const ForClause& forClause = query.for_clauses[0];
+
+    // Find all nodes matching the FOR path
+    std::vector<pugi::xml_node> iterationNodes;
+
+    if (forClause.path.components.size() == 1) {
+        // Simple path: find all nodes with this element name
+        std::string elementName = forClause.path.components[0];
+
+        // Depth-first search for all matching elements
+        std::function<void(const pugi::xml_node&)> findElements =
+            [&](const pugi::xml_node& node) {
+                if (node.type() == pugi::node_element && node.name() == elementName) {
+                    iterationNodes.push_back(node);
+                }
+                for (pugi::xml_node child : node.children()) {
+                    findElements(child);
+                }
+            };
+
+        findElements(doc);
+    } else {
+        // Multi-component path: use partial path matching
+        XmlNavigator::findNodesByPartialPath(doc, forClause.path.components, iterationNodes);
+    }
+
+    // For each iteration node, extract SELECT fields
+    for (const auto& contextNode : iterationNodes) {
+        // Check WHERE clause if present (evaluate in context of this node)
+        if (query.where) {
+            if (!XmlNavigator::evaluateWhereExpr(contextNode, query.where.get(), 0)) {
+                continue; // Skip this node if WHERE condition fails
+            }
+        }
+
+        // Extract SELECT fields from this context node
+        ResultRow row;
+
+        for (const auto& field : query.select_fields) {
+            std::string fieldName;
+            std::string value;
+
+            if (field.include_filename) {
+                fieldName = "FILE_NAME";
+                value = filename;
+            } else {
+                fieldName = field.components.back();
+
+                // Extract field value relative to context node
+                if (field.components.size() == 1) {
+                    // Simple field: look for child element
+                    pugi::xml_node foundNode = XmlNavigator::findFirstElementByName(contextNode, field.components[0]);
+                    if (foundNode) {
+                        value = foundNode.child_value();
+                    }
+                } else {
+                    // Multi-component path: use partial path matching from context node
+                    std::vector<pugi::xml_node> fieldNodes;
+                    XmlNavigator::findNodesByPartialPath(contextNode, field.components, fieldNodes);
+
+                    if (!fieldNodes.empty()) {
+                        value = fieldNodes[0].child_value();
+                    }
+                }
+            }
+
+            row.push_back({fieldName, value});
+        }
+
+        results.push_back(row);
+    }
+
+    return results;
+}
+
 std::vector<ResultRow> QueryExecutor::processFile(
     const std::string& filepath,
     const Query& query
@@ -132,6 +228,13 @@ std::vector<ResultRow> QueryExecutor::processFile(
 
     // Get filename for FILE_NAME field
     std::string filename = std::filesystem::path(filepath).filename().string();
+
+    // Check if query has FOR clauses
+    if (!query.for_clauses.empty()) {
+        // Process query with FOR clause context binding
+        results = processFileWithForClauses(filepath, query, *doc, filename);
+        return results;
+    }
 
     // If there's no WHERE clause, extract all values
     if (!query.where) {

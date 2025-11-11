@@ -26,6 +26,8 @@ enum class TokenType {
     PREFIX,
     CHECK,
     VERBOSE,
+    FOR,
+    IN,
     IDENTIFIER,
     STRING_LITERAL,
     NUMBER,
@@ -108,10 +110,18 @@ struct WhereLogical : public WhereExpr {
     std::unique_ptr<WhereExpr> right;
 };
 
+// FOR clause for context binding
+// Example: FOR emp IN employee
+struct ForClause {
+    std::string variable;      // Variable name (e.g., "emp")
+    FieldPath path;            // Path to iterate over (e.g., "employee" or "department.employee")
+};
+
 // Main Query AST
 struct Query {
     std::vector<FieldPath> select_fields;     // Fields to select
     std::string from_path;                     // Directory path
+    std::vector<ForClause> for_clauses;        // Optional FOR clauses for iteration context
     std::unique_ptr<WhereExpr> where;          // Optional WHERE clause (can be condition or logical)
     std::vector<std::string> order_by_fields;  // ORDER BY fields (Phase 2)
     int limit = -1;                            // LIMIT value (Phase 2, -1 means no limit)
