@@ -15,17 +15,21 @@ source "$SCRIPT_DIR/test_helpers.sh"
 
 print_category "PARTIAL PATH DISAMBIGUATION TESTS"
 
-echo "Testing partial path matching with ambiguous attribute names..."
+echo "Testing enhanced attribute selection with partial path matching:"
+echo "  - Single component (e.g., 'name') → Top-level attributes only"
+echo "  - Partial path (e.g., 'department.name') → Suffix matching"
+echo "  - Full path (e.g., 'company.department.name') → Suffix matching"
+echo ""
 echo "Test data: company.xml with multiple 'name' elements at different levels"
 echo ""
 
 TEST_DATA="$SCRIPT_DIR/data/company.xml"
 
-# Test 1: Single component "name" - should match all name elements
+# Test 1: Single component "name" - should match ONLY top-level (company.name)
 run_test "PATH-001" \
-    "Single component 'name' (matches all)" \
+    "Single component 'name' (top-level only)" \
     "SELECT name FROM \"$TEST_DATA\"" \
-    "TechCorp|Engineering|Alice Smith|Bob Johnson|Sales|Carol White|David Brown|Widget Pro|Electronics|Gadget Plus|Software"
+    "TechCorp"
 
 # Test 2: Two-component path "company.name" - should match only company name
 run_test "PATH-002" \

@@ -23,27 +23,27 @@ std::vector<XmlResult> XmlNavigator::extractValues(
         return results;
     }
 
-    // Shorthand: if only one component, search for all occurrences in entire tree
+    // Single component: match only at top level (direct children of root element)
     if (field.components.size() == 1) {
-        std::function<void(const pugi::xml_node&)> findAllByName =
-            [&](const pugi::xml_node& node) {
-                if (!node) return;
+        // Find the root element (first element child of document)
+        pugi::xml_node root;
+        for (pugi::xml_node child : doc.children()) {
+            if (child.type() == pugi::node_element) {
+                root = child;
+                break;
+            }
+        }
 
-                // Check if current node matches
-                if (std::string(node.name()) == field.components[0]) {
-                    std::string value = node.child_value();
-                    if (!value.empty()) {
-                        results.push_back({filename, value});
-                    }
+        if (root) {
+            // Look for direct children of root with the target name
+            for (pugi::xml_node child : root.children(field.components[0].c_str())) {
+                std::string value = child.child_value();
+                if (!value.empty()) {
+                    results.push_back({filename, value});
                 }
+            }
+        }
 
-                // Recursively search all children
-                for (pugi::xml_node child : node.children()) {
-                    findAllByName(child);
-                }
-            };
-
-        findAllByName(doc);
         return results;
     }
 

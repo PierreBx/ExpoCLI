@@ -30,12 +30,12 @@ print_category "1. Basic SELECT Queries"
 
 run_test "SELECT-001" \
     "Select single field" \
-    'SELECT title FROM "tests/data/books1.xml";' \
+    'SELECT book.title FROM "tests/data/books1.xml";' \
     "The Great Adventure"
 
 run_test "SELECT-002" \
     "Select multiple fields" \
-    'SELECT title,price FROM "tests/data/books1.xml";' \
+    'SELECT book.title,book.price FROM "tests/data/books1.xml";' \
     "29.99"
 
 run_test "SELECT-003" \
@@ -50,7 +50,7 @@ run_test "SELECT-004" \
 
 run_test "SELECT-005" \
     "Select from multiple files" \
-    'SELECT title FROM "tests/data/";' \
+    'SELECT book.title FROM "tests/data/";' \
     ".*"
 
 # ============================================================================
@@ -60,27 +60,27 @@ print_category "2. WHERE Clause - Basic Comparisons"
 
 run_test "WHERE-001" \
     "WHERE equals" \
-    'SELECT title FROM "tests/data/books1.xml" WHERE year = 2020;' \
+    'SELECT book.title FROM "tests/data/books1.xml" WHERE book.year = 2020;' \
     "The Great Adventure"
 
 run_test "WHERE-002" \
     "WHERE not equals" \
-    'SELECT title FROM "tests/data/books1.xml" WHERE year != 2020;' \
+    'SELECT book.title FROM "tests/data/books1.xml" WHERE book.year != 2020;' \
     "Learning Programming"
 
 run_test "WHERE-003" \
     "WHERE less than" \
-    'SELECT title FROM "tests/data/books1.xml" WHERE price < 40;' \
+    'SELECT book.title FROM "tests/data/books1.xml" WHERE book.price < 40;' \
     "The Great Adventure"
 
 run_test "WHERE-004" \
     "WHERE greater than" \
-    'SELECT title FROM "tests/data/books1.xml" WHERE price > 40;' \
+    'SELECT book.title FROM "tests/data/books1.xml" WHERE book.price > 40;' \
     "Learning Programming"
 
 run_test "WHERE-005" \
     "WHERE string equals" \
-    'SELECT title FROM "tests/data/books1.xml" WHERE category = Fiction;' \
+    'SELECT book.title FROM "tests/data/books1.xml" WHERE book.category = Fiction;' \
     "The Great Adventure"
 
 # ============================================================================
@@ -90,12 +90,12 @@ print_category "3. WHERE Clause - NULL Operators"
 
 run_test "NULL-001" \
     "IS NULL - find missing elements" \
-    'SELECT title FROM "tests/data/books2.xml" WHERE author IS NULL;' \
+    'SELECT book.title FROM "tests/data/books2.xml" WHERE book.author IS NULL;' \
     "Cooking for Beginners"
 
 run_test "NULL-002" \
     "IS NOT NULL - find present elements" \
-    'SELECT title FROM "tests/data/books2.xml" WHERE author IS NOT NULL;' \
+    'SELECT book.title FROM "tests/data/books2.xml" WHERE book.author IS NOT NULL;' \
     "Data Science Basics"
 
 # ============================================================================
@@ -105,17 +105,17 @@ print_category "4. WHERE Clause - LIKE Operator"
 
 run_test "LIKE-001" \
     "LIKE with pattern" \
-    'SELECT title FROM "tests/data/books1.xml" WHERE title LIKE /Great/;' \
+    'SELECT book.title FROM "tests/data/books1.xml" WHERE book.title LIKE /Great/;' \
     "The Great Adventure"
 
 run_test "LIKE-002" \
     "LIKE with wildcard" \
-    'SELECT title FROM "tests/data/books1.xml" WHERE title LIKE /.*Programming.*/;' \
+    'SELECT book.title FROM "tests/data/books1.xml" WHERE book.title LIKE /.*Programming.*/;' \
     "Learning Programming"
 
 run_test "LIKE-003" \
     "IS NOT LIKE" \
-    'SELECT title FROM "tests/data/books1.xml" WHERE title IS NOT LIKE /Great/;' \
+    'SELECT book.title FROM "tests/data/books1.xml" WHERE book.title IS NOT LIKE /Great/;' \
     "Learning Programming"
 
 # ============================================================================
@@ -125,17 +125,17 @@ print_category "5. WHERE Clause - Logical Operators"
 
 run_test "LOGIC-001" \
     "AND operator" \
-    'SELECT title FROM "tests/data/books1.xml" WHERE year = 2020 AND price < 30;' \
+    'SELECT book.title FROM "tests/data/books1.xml" WHERE book.year = 2020 AND book.price < 30;' \
     "The Great Adventure"
 
 run_test "LOGIC-002" \
     "OR operator" \
-    'SELECT title FROM "tests/data/books1.xml" WHERE year = 2020 OR year = 2019;' \
+    'SELECT book.title FROM "tests/data/books1.xml" WHERE book.year = 2020 OR book.year = 2019;' \
     ".*"
 
 run_test "LOGIC-003" \
     "Parentheses grouping" \
-    'SELECT title FROM "tests/data/books2.xml" WHERE (price < 25 OR category = Technical) AND year > 2019;' \
+    'SELECT book.title FROM "tests/data/books2.xml" WHERE (book.price < 25 OR book.category = Technical) AND book.year > 2019;' \
     "Data Science Basics"
 
 # ============================================================================
@@ -145,17 +145,17 @@ print_category "6. ORDER BY and LIMIT"
 
 run_test "ORDER-001" \
     "ORDER BY numeric field" \
-    'SELECT title FROM "tests/data/books1.xml" ORDER BY year;' \
+    'SELECT book.title FROM "tests/data/books1.xml" ORDER BY year;' \
     "Learning Programming"
 
 run_test "LIMIT-001" \
     "LIMIT results" \
-    'SELECT title FROM "tests/data/books1.xml" LIMIT 1;' \
+    'SELECT book.title FROM "tests/data/books1.xml" LIMIT 1;' \
     "The Great Adventure"
 
 run_test "LIMIT-002" \
     "LIMIT with ORDER BY" \
-    'SELECT title FROM "tests/data/books1.xml" ORDER BY price LIMIT 1;' \
+    'SELECT book.title FROM "tests/data/books1.xml" ORDER BY price LIMIT 1;' \
     "The Great Adventure"
 
 # ============================================================================
@@ -233,7 +233,7 @@ run_test "ERR-001" \
 
 run_test "ERR-002" \
     "Non-existent file" \
-    'SELECT title FROM "nonexistent.xml";' \
+    'SELECT book.title FROM "nonexistent.xml";' \
     "Error|No.*files found|does not exist"
 
 run_test "ERR-003" \
