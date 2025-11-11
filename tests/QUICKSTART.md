@@ -18,13 +18,21 @@ cd /tmp
 
 ## Binary Detection
 
-The test script is **smart** about finding the ExpoCLI binary:
+The test script is **smart** about finding the ExpoCLI binary with multiple strategies:
 
-1. **First**: Checks if `expocli` is in your PATH (installed system-wide)
-2. **Then**: Falls back to `./build/expocli` (local build)
-3. **Finally**: Offers to build it for you if not found
+1. **First**: Checks for `./expocli.sh` wrapper script (Docker-based execution)
+2. **Second**: Checks if `expocli` is in your PATH (system-installed)
+3. **Third**: Falls back to `./build/expocli` (local build)
+4. **Finally**: Offers to build it for you if not found
 
 You'll see which one it's using:
+```
+Working directory: /home/user/ExpoCLI
+Using wrapper script: ./expocli.sh
+```
+
+or
+
 ```
 Working directory: /home/user/ExpoCLI
 Using expocli from PATH: /usr/local/bin/expocli
@@ -36,6 +44,20 @@ or
 Working directory: /home/user/ExpoCLI
 Using local build: ./build/expocli
 ```
+
+### Important: Aliases Don't Work in Scripts
+
+If you have an alias like:
+```bash
+alias expocli='/path/to/expocli.sh'
+```
+
+This alias **won't work** in the test script because:
+- Aliases are only loaded in interactive shells
+- Test scripts run in non-interactive mode
+- `.bashrc` aliases aren't available
+
+**Solution**: The test script will automatically find `expocli.sh` in the project root, so you don't need the alias for testing!
 
 ## First Time Setup
 
