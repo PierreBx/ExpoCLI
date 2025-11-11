@@ -179,11 +179,10 @@ echo ""
         # Step 4: Clean old build directory
         echo ""
         echo -e "${BLUE}[4/5]${NC} Cleaning old build artifacts..."
-        if docker compose exec -T expocli bash -c "rm -rf /app/build" 2>/dev/null; then
+        if docker compose exec -T expocli bash -c "rm -rf /app/build/* /app/build/.* 2>/dev/null || true"; then
             echo -e "${GREEN}✓${NC} Build directory cleaned"
         else
-            echo -e "${YELLOW}⚠${NC}  Failed to clean build directory"
-            exit 1
+            echo -e "${YELLOW}⚠${NC}  Warning: Could not clean build directory, but continuing..."
         fi
 
         # Step 5: Compile the binary with latest code
@@ -251,11 +250,10 @@ echo ""
 
         # Step 1: Clean old build directory
         echo -e "${BLUE}[1/2]${NC} Cleaning old build artifacts..."
-        if docker compose exec -T expocli bash -c "rm -rf /app/build" 2>/dev/null; then
+        if docker compose exec -T expocli bash -c "rm -rf /app/build/* /app/build/.* 2>/dev/null || true"; then
             echo -e "${GREEN}✓${NC} Build directory cleaned"
         else
-            echo -e "${YELLOW}⚠${NC}  Failed to clean build directory"
-            exit 1
+            echo -e "${YELLOW}⚠${NC}  Warning: Could not clean build directory, but continuing..."
         fi
 
         # Step 2: Compile the binary with latest code
