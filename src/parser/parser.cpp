@@ -12,11 +12,19 @@ std::unique_ptr<Query> Parser::parse() {
     // Parse SELECT clause
     expect(TokenType::SELECT, "Expected SELECT keyword");
 
-    // Parse field list
-    query->select_fields.push_back(parseFieldPath());
+    // Parse field list (may include aggregations)
+    query->select_fields.push_back(parseSelectField());
 
     while (match(TokenType::COMMA)) {
-        query->select_fields.push_back(parseFieldPath());
+        query->select_fields.push_back(parseSelectField());
+    }
+
+    // Check if any fields are aggregations
+    for (const auto& field : query->select_fields) {
+        if (field.aggregate != AggregateFunc::NONE) {
+            query->has_aggregates = true;
+            break;
+        }
     }
 
     // Parse FROM clause
@@ -32,6 +40,11 @@ std::unique_ptr<Query> Parser::parse() {
     // Parse optional WHERE clause
     if (match(TokenType::WHERE)) {
         query->where = parseWhereClause();
+    }
+
+    // Parse optional GROUP BY clause
+    if (check(TokenType::GROUP)) {
+        parseGroupByClause(*query);
     }
 
     // Parse optional ORDER BY clause
@@ -142,6 +155,89 @@ FieldPath Parser::parseFieldPath() {
     return field;
 }
 
+FieldPath Parser::parseSelectField() {
+    FieldPath field;
+
+    // Check if this is an aggregation function
+    Token current = peek();
+
+    if (current.type == TokenType::COUNT ||
+        current.type == TokenType::SUM ||
+        current.type == TokenType::AVG ||
+        current.type == TokenType::MIN ||
+        current.type == TokenType::MAX) {
+
+        // Parse aggregation function
+        AggregateFunc aggFunc;
+        switch (current.type) {
+            case TokenType::COUNT:
+                aggFunc = AggregateFunc::COUNT;
+                break;
+            case TokenType::SUM:
+                aggFunc = AggregateFunc::SUM;
+                break;
+            case TokenType::AVG:
+                aggFunc = AggregateFunc::AVG;
+                break;
+            case TokenType::MIN:
+                aggFunc = AggregateFunc::MIN;
+                break;
+            case TokenType::MAX:
+                aggFunc = AggregateFunc::MAX;
+                break;
+            default:
+                throw ParseError("Invalid aggregation function");
+        }
+
+        advance(); // consume function name
+        expect(TokenType::LPAREN, "Expected '(' after aggregation function");
+
+        // Parse argument (can be a variable name or field path like emp.salary)
+        if (peek().type != TokenType::IDENTIFIER) {
+            throw ParseError("Expected identifier in aggregation function");
+        }
+
+        std::string arg = advance().value;
+
+        // Check for dot-separated field path (e.g., emp.salary)
+        while (peek().type == TokenType::DOT) {
+            advance(); // consume dot
+            if (peek().type != TokenType::IDENTIFIER) {
+                throw ParseError("Expected identifier after '.' in aggregation argument");
+            }
+            arg += "." + advance().value;
+        }
+
+        field.aggregate = aggFunc;
+        field.aggregate_arg = arg;
+
+        expect(TokenType::RPAREN, "Expected ')' after aggregation argument");
+
+        // Optional AS alias
+        if (match(TokenType::AS)) {
+            if (peek().type != TokenType::IDENTIFIER) {
+                throw ParseError("Expected alias name after AS");
+            }
+            field.alias = advance().value;
+        }
+
+        return field;
+    }
+
+    // Not an aggregation - parse as regular field
+    field = parseFieldPath();
+
+    // Check for optional AS alias
+    if (match(TokenType::AS)) {
+        if (peek().type != TokenType::IDENTIFIER) {
+            throw ParseError("Expected alias name after AS");
+        }
+        field.alias = advance().value;
+    }
+
+    return field;
+}
+
 std::string Parser::parseFilePath() {
     // If it's a string literal (quoted path), just return it
     if (peek().type == TokenType::STRING_LITERAL) {
@@ -166,13 +262,35 @@ std::string Parser::parseFilePath() {
         }
 
         // Collect path components
+        // Accept identifiers, slashes, dots, and also keywords that might appear in filenames
+        // (like "xml", "data", etc.) but stop at statement keywords
         if (current.type == TokenType::IDENTIFIER ||
             current.type == TokenType::SLASH ||
-            current.type == TokenType::DOT) {
+            current.type == TokenType::DOT ||
+            current.type == TokenType::XML ||
+            current.type == TokenType::SET ||
+            current.type == TokenType::SHOW ||
+            current.type == TokenType::XSD ||
+            current.type == TokenType::DEST ||
+            current.type == TokenType::GENERATE ||
+            current.type == TokenType::PREFIX ||
+            current.type == TokenType::CHECK ||
+            current.type == TokenType::VERBOSE ||
+            current.type == TokenType::ASC ||
+            current.type == TokenType::DESC ||
+            current.type == TokenType::COUNT ||
+            current.type == TokenType::SUM ||
+            current.type == TokenType::AVG ||
+            current.type == TokenType::MIN ||
+            current.type == TokenType::MAX ||
+            current.type == TokenType::AS ||
+            current.type == TokenType::IN ||
+            current.type == TokenType::AT ||
+            current.type == TokenType::BY) {
             path += current.value;
             advance();
         } else {
-            // Unknown token in path context
+            // Unknown token in path context or statement keyword
             break;
         }
     }
@@ -450,6 +568,28 @@ void Parser::parseLimitClause(Query& query) {
         throw ParseError("Invalid LIMIT value");
     } catch (const std::out_of_range&) {
         throw ParseError("LIMIT value out of range");
+    }
+}
+
+void Parser::parseGroupByClause(Query& query) {
+    expect(TokenType::GROUP, "Expected GROUP keyword");
+    expect(TokenType::BY, "Expected BY keyword after GROUP");
+
+    // Parse field to group by
+    if (peek().type != TokenType::IDENTIFIER) {
+        throw ParseError("Expected field name after GROUP BY");
+    }
+
+    std::string fieldName = advance().value;
+    query.group_by_fields.push_back(fieldName);
+
+    // Support multiple GROUP BY fields separated by commas
+    while (match(TokenType::COMMA)) {
+        if (peek().type != TokenType::IDENTIFIER) {
+            throw ParseError("Expected field name after comma in GROUP BY");
+        }
+        fieldName = advance().value;
+        query.group_by_fields.push_back(fieldName);
     }
 }
 

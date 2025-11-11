@@ -35,6 +35,7 @@ private:
 
     // Parsing methods
     FieldPath parseFieldPath();
+    FieldPath parseSelectField();  // Parse SELECT field (may include aggregation)
     std::string parseFilePath();  // Parse filesystem path (quoted or unquoted)
     ForClause parseForClause();   // Parse FOR...IN clause
     std::unique_ptr<WhereExpr> parseWhereClause();
@@ -47,6 +48,7 @@ private:
     std::string parseRegexPattern();  // Parse regex pattern between / delimiters
     void parseOrderByClause(Query& query);
     void parseLimitClause(Query& query);
+    void parseGroupByClause(Query& query);  // Parse GROUP BY clause
     void markVariableReferencesInWhere(WhereExpr* expr, const Query& query);
 };
 

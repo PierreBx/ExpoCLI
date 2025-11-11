@@ -182,6 +182,14 @@ TokenType Lexer::identifyKeyword(const std::string& word) const {
     if (upper == "FOR") return TokenType::FOR;
     if (upper == "IN") return TokenType::IN;
     if (upper == "AT") return TokenType::AT;
+    if (upper == "COUNT") return TokenType::COUNT;
+    if (upper == "SUM") return TokenType::SUM;
+    if (upper == "AVG") return TokenType::AVG;
+    if (upper == "MIN") return TokenType::MIN;
+    if (upper == "MAX") return TokenType::MAX;
+    if (upper == "GROUP") return TokenType::GROUP;
+    if (upper == "HAVING") return TokenType::HAVING;
+    if (upper == "AS") return TokenType::AS;
 
     return TokenType::IDENTIFIER;
 }

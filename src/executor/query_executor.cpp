@@ -8,6 +8,7 @@
 #include <mutex>
 #include <atomic>
 #include <chrono>
+#include <limits>
 
 namespace expocli {
 
@@ -143,6 +144,108 @@ std::vector<ResultRow> QueryExecutor::processFileWithForClauses(
     // Start nested iteration from document root
     processNestedForClauses(doc.document_element(), query, varContext, positionContext, 0, filename, results);
 
+    // If query has aggregations, apply aggregation logic
+    if (query.has_aggregates && !results.empty()) {
+        std::vector<ResultRow> aggregatedResults;
+
+        // For now, assume no GROUP BY - aggregate all results into a single row
+        // TODO: Add GROUP BY support
+        if (query.group_by_fields.empty()) {
+            ResultRow aggregatedRow;
+
+            // Process each SELECT field
+            for (const auto& field : query.select_fields) {
+                if (field.aggregate != AggregateFunc::NONE) {
+                    std::string fieldName = field.alias.empty() ?
+                        (std::string(field.aggregate == AggregateFunc::COUNT ? "COUNT" :
+                                    field.aggregate == AggregateFunc::SUM ? "SUM" :
+                                    field.aggregate == AggregateFunc::AVG ? "AVG" :
+                                    field.aggregate == AggregateFunc::MIN ? "MIN" : "MAX") +
+                         "(" + field.aggregate_arg + ")") : field.alias;
+
+                    // Find this field in the results and aggregate
+                    std::vector<std::string> values;
+                    for (const auto& row : results) {
+                        for (const auto& [name, val] : row) {
+                            if (name == fieldName || name.find(field.aggregate_arg) != std::string::npos) {
+                                values.push_back(val);
+                                break;
+                            }
+                        }
+                    }
+
+                    // Apply aggregation function
+                    std::string aggregatedValue;
+                    switch (field.aggregate) {
+                        case AggregateFunc::COUNT:
+                            aggregatedValue = std::to_string(values.size());
+                            break;
+                        case AggregateFunc::SUM: {
+                            double sum = 0;
+                            for (const auto& v : values) {
+                                try {
+                                    sum += std::stod(v);
+                                } catch (...) {
+                                    // Skip non-numeric values
+                                }
+                            }
+                            aggregatedValue = std::to_string(sum);
+                            break;
+                        }
+                        case AggregateFunc::AVG: {
+                            double sum = 0;
+                            size_t count = 0;
+                            for (const auto& v : values) {
+                                try {
+                                    sum += std::stod(v);
+                                    count++;
+                                } catch (...) {
+                                    // Skip non-numeric values
+                                }
+                            }
+                            aggregatedValue = count > 0 ? std::to_string(sum / count) : "0";
+                            break;
+                        }
+                        case AggregateFunc::MIN: {
+                            double minVal = std::numeric_limits<double>::max();
+                            for (const auto& v : values) {
+                                try {
+                                    double val = std::stod(v);
+                                    if (val < minVal) minVal = val;
+                                } catch (...) {
+                                    // Skip non-numeric values
+                                }
+                            }
+                            aggregatedValue = minVal == std::numeric_limits<double>::max() ? "0" : std::to_string(minVal);
+                            break;
+                        }
+                        case AggregateFunc::MAX: {
+                            double maxVal = std::numeric_limits<double>::lowest();
+                            for (const auto& v : values) {
+                                try {
+                                    double val = std::stod(v);
+                                    if (val > maxVal) maxVal = val;
+                                } catch (...) {
+                                    // Skip non-numeric values
+                                }
+                            }
+                            aggregatedValue = maxVal == std::numeric_limits<double>::lowest() ? "0" : std::to_string(maxVal);
+                            break;
+                        }
+                        default:
+                            aggregatedValue = "0";
+                    }
+
+                    aggregatedRow.push_back({fieldName, aggregatedValue});
+                }
+            }
+
+            aggregatedResults.push_back(aggregatedRow);
+            return aggregatedResults;
+        }
+        // TODO: Handle GROUP BY aggregations
+    }
+
     return results;
 }
 
@@ -171,7 +274,84 @@ void QueryExecutor::processNestedForClauses(
             std::string fieldName;
             std::string value;
 
-            if (field.include_filename) {
+            // Handle aggregation functions
+            if (field.aggregate != AggregateFunc::NONE) {
+                // For aggregations, we'll use special field names and values
+                // The actual aggregation computation happens later
+                switch (field.aggregate) {
+                    case AggregateFunc::COUNT:
+                        fieldName = field.alias.empty() ? ("COUNT(" + field.aggregate_arg + ")") : field.alias;
+                        value = "1"; // Each iteration contributes 1 to the count
+                        break;
+                    case AggregateFunc::SUM:
+                    case AggregateFunc::AVG:
+                    case AggregateFunc::MIN:
+                    case AggregateFunc::MAX: {
+                        fieldName = field.alias.empty() ?
+                            (std::string(field.aggregate == AggregateFunc::SUM ? "SUM" :
+                                        field.aggregate == AggregateFunc::AVG ? "AVG" :
+                                        field.aggregate == AggregateFunc::MIN ? "MIN" : "MAX") +
+                             "(" + field.aggregate_arg + ")") : field.alias;
+
+                        // Parse the aggregate_arg which could be:
+                        // - "emp" (variable)
+                        // - "emp.salary" (variable.field)
+                        // - "salary" (field relative to current context)
+
+                        // Split by dot to get components
+                        std::vector<std::string> argComponents;
+                        std::string component;
+                        for (char c : field.aggregate_arg) {
+                            if (c == '.') {
+                                if (!component.empty()) {
+                                    argComponents.push_back(component);
+                                    component.clear();
+                                }
+                            } else {
+                                component += c;
+                            }
+                        }
+                        if (!component.empty()) {
+                            argComponents.push_back(component);
+                        }
+
+                        // Resolve the value
+                        if (!argComponents.empty()) {
+                            // Check if first component is a variable
+                            if (varContext.find(argComponents[0]) != varContext.end()) {
+                                pugi::xml_node varNode = varContext[argComponents[0]];
+                                if (argComponents.size() == 1) {
+                                    // Just the variable - get its text value
+                                    value = varNode.child_value();
+                                } else {
+                                    // Variable.field - navigate to the field
+                                    FieldPath argPath;
+                                    argPath.components = std::vector<std::string>(argComponents.begin() + 1, argComponents.end());
+                                    argPath.is_variable_ref = true;
+                                    argPath.variable_name = argComponents[0];
+
+                                    // Navigate from the variable node
+                                    for (const auto& comp : argPath.components) {
+                                        pugi::xml_node child = varNode.child(comp.c_str());
+                                        if (child) {
+                                            value = child.child_value();
+                                            break;
+                                        }
+                                    }
+                                }
+                            } else {
+                                // Not a variable - resolve as field path from current context
+                                FieldPath argPath;
+                                argPath.components = argComponents;
+                                value = resolveFieldWithContext(argPath, varContext, positionContext, currentContext, query);
+                            }
+                        }
+                        break;
+                    }
+                    default:
+                        value = "";
+                }
+            } else if (field.include_filename) {
                 fieldName = "FILE_NAME";
                 value = filename;
             } else {
