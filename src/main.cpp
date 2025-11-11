@@ -7,6 +7,7 @@
 #include <iostream>
 #include <string>
 #include <sstream>
+#include <iomanip>
 #include <csignal>
 #include <cstdlib>
 #include <cstring>
@@ -138,6 +139,22 @@ void printUsage(const char* programName) {
     std::cout << "  CHECK <pattern>     Validate files matching pattern (e.g., /path/*.xml)\n\n";
 }
 
+// Helper function to draw progress bar
+std::string drawProgressBar(size_t completed, size_t total, size_t barWidth = 30) {
+    float progress = total > 0 ? static_cast<float>(completed) / total : 0.0f;
+    size_t pos = static_cast<size_t>(barWidth * progress);
+
+    std::string bar = "[";
+    for (size_t i = 0; i < barWidth; ++i) {
+        if (i < pos) bar += "=";
+        else if (i == pos) bar += ">";
+        else bar += " ";
+    }
+    bar += "]";
+
+    return bar;
+}
+
 void executeQuery(const std::string& query, const expocli::AppContext* context = nullptr) {
     if (query.empty()) {
         return;
@@ -168,7 +185,60 @@ void executeQuery(const std::string& query, const expocli::AppContext* context =
         }
 
         // Execute query
-        auto results = expocli::QueryExecutor::execute(*ast);
+        std::vector<expocli::ResultRow> results;
+
+        if (context && context->isVerbose()) {
+            // Use progress tracking in VERBOSE mode
+            expocli::ExecutionStats stats;
+            std::string lastProgressLine;
+
+            auto progressCallback = [&lastProgressLine](size_t completed, size_t total, size_t threadCount) {
+                // Clear previous line
+                if (!lastProgressLine.empty()) {
+                    std::cout << "\r" << std::string(lastProgressLine.length(), ' ') << "\r";
+                }
+
+                // Build progress bar
+                std::string bar = drawProgressBar(completed, total, 30);
+                float percent = total > 0 ? (static_cast<float>(completed) / total * 100.0f) : 0.0f;
+
+                // Format: [========>           ] 45/100 files (8 threads)
+                std::ostringstream oss;
+                oss << "\033[36m" << bar << " "
+                    << completed << "/" << total << " files";
+
+                if (threadCount > 1) {
+                    oss << " (" << threadCount << " threads)";
+                }
+
+                oss << " " << std::fixed << std::setprecision(1) << percent << "%\033[0m";
+
+                lastProgressLine = oss.str();
+                std::cout << lastProgressLine << std::flush;
+            };
+
+            results = expocli::QueryExecutor::executeWithProgress(*ast, progressCallback, &stats);
+
+            // Clear progress line
+            if (!lastProgressLine.empty()) {
+                std::cout << "\r" << std::string(lastProgressLine.length(), ' ') << "\r";
+            }
+
+            // Print execution summary
+            if (stats.used_threading) {
+                std::cout << "\033[32m✓ Processed " << stats.total_files << " files in "
+                          << std::fixed << std::setprecision(2) << stats.execution_time_seconds
+                          << "s (" << stats.thread_count << " threads)\033[0m\n\n";
+            } else {
+                std::cout << "\033[32m✓ Processed " << stats.total_files << " file(s) in "
+                          << std::fixed << std::setprecision(2) << stats.execution_time_seconds
+                          << "s\033[0m\n\n";
+            }
+
+        } else {
+            // Non-verbose mode: use standard execution
+            results = expocli::QueryExecutor::execute(*ast);
+        }
 
         // Format and print results
         expocli::ResultFormatter::print(results);

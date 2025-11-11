@@ -6,20 +6,46 @@
 #include <vector>
 #include <string>
 #include <utility>
+#include <atomic>
+#include <functional>
 
 namespace expocli {
 
 // Result row (multiple fields) - using vector to preserve field order
 using ResultRow = std::vector<std::pair<std::string, std::string>>;
 
+// Progress callback: (completed_files, total_files, thread_count)
+using ProgressCallback = std::function<void(size_t, size_t, size_t)>;
+
+// Execution statistics
+struct ExecutionStats {
+    size_t total_files = 0;
+    size_t thread_count = 0;
+    double execution_time_seconds = 0.0;
+    bool used_threading = false;
+};
+
 class QueryExecutor {
 public:
     // Execute the query and return results
     static std::vector<ResultRow> execute(const Query& query);
 
+    // Execute with progress tracking (for VERBOSE mode)
+    static std::vector<ResultRow> executeWithProgress(
+        const Query& query,
+        ProgressCallback progressCallback,
+        ExecutionStats* stats = nullptr
+    );
+
     // Validate query for ambiguous attributes (used in VERBOSE mode)
     // Returns a list of ambiguous attributes found
     static std::vector<std::string> checkForAmbiguousAttributes(const Query& query);
+
+    // Get recommended thread count based on hardware
+    static size_t getOptimalThreadCount();
+
+    // Calculate if threading should be used based on file count and estimated work
+    static bool shouldUseThreading(size_t fileCount);
 
 private:
     // Get all XML files from directory
@@ -29,6 +55,14 @@ private:
     static std::vector<ResultRow> processFile(
         const std::string& filepath,
         const Query& query
+    );
+
+    // Execute query with multi-threading
+    static std::vector<ResultRow> executeMultithreaded(
+        const std::vector<std::string>& xmlFiles,
+        const Query& query,
+        size_t threadCount,
+        std::atomic<size_t>* completedCounter = nullptr
     );
 };
 

@@ -28,33 +28,43 @@ echo "  4. Validate results for correctness"
 echo ""
 
 # Create test directories
-rm -rf "$HARD_TEST_DIR"
 mkdir -p "$HARD_TEST_DATA"
 
 # ============================================================================
-# PHASE 1: Generate 100 XML files
+# PHASE 1: Check for existing files or generate new ones
 # ============================================================================
-echo -e "${COLOR_BOLD}${COLOR_YELLOW}Phase 1: Generating 100 XML files...${COLOR_RESET}"
-
-GENERATION_START=$(date +%s.%N)
-echo -e "SET XSD $HARD_TEST_SCHEMA;\nSET DEST $HARD_TEST_DATA;\nGENERATE XML 100 PREFIX enterprise_;\nexit;" | $EXPOCLI_BIN > "$HARD_TEST_DIR/generation.log" 2>&1
-
-if [ $? -ne 0 ]; then
-    echo -e "${COLOR_RED}✗ Failed to generate XML files${COLOR_RESET}"
-    cat "$HARD_TEST_DIR/generation.log"
-    exit 1
-fi
-
-GENERATION_END=$(date +%s.%N)
-GENERATION_TIME=$(awk "BEGIN {print $GENERATION_END - $GENERATION_START}")
-
-# Verify files were created
 FILE_COUNT=$(ls -1 "$HARD_TEST_DATA"/enterprise_*.xml 2>/dev/null | wc -l)
-printf "${COLOR_GREEN}✓ Generated %d XML files in %.6f seconds${COLOR_RESET}\n" "$FILE_COUNT" "$GENERATION_TIME"
 
-if [ "$FILE_COUNT" -ne 100 ]; then
-    echo -e "${COLOR_RED}✗ Expected 100 files, got $FILE_COUNT${COLOR_RESET}"
-    exit 1
+if [ "$FILE_COUNT" -eq 100 ]; then
+    echo -e "${COLOR_BOLD}${COLOR_YELLOW}Phase 1: Using existing 100 XML files...${COLOR_RESET}"
+    echo -e "${COLOR_GREEN}✓ Found 100 existing XML files (skipping generation)${COLOR_RESET}"
+    GENERATION_TIME=0
+else
+    echo -e "${COLOR_BOLD}${COLOR_YELLOW}Phase 1: Generating 100 XML files...${COLOR_RESET}"
+
+    # Clean up any partial/old files
+    rm -f "$HARD_TEST_DATA"/enterprise_*.xml 2>/dev/null
+
+    GENERATION_START=$(date +%s.%N)
+    echo -e "SET XSD $HARD_TEST_SCHEMA;\nSET DEST $HARD_TEST_DATA;\nGENERATE XML 100 PREFIX enterprise_;\nexit;" | $EXPOCLI_BIN > "$HARD_TEST_DIR/generation.log" 2>&1
+
+    if [ $? -ne 0 ]; then
+        echo -e "${COLOR_RED}✗ Failed to generate XML files${COLOR_RESET}"
+        cat "$HARD_TEST_DIR/generation.log"
+        exit 1
+    fi
+
+    GENERATION_END=$(date +%s.%N)
+    GENERATION_TIME=$(awk "BEGIN {print $GENERATION_END - $GENERATION_START}")
+
+    # Verify files were created
+    FILE_COUNT=$(ls -1 "$HARD_TEST_DATA"/enterprise_*.xml 2>/dev/null | wc -l)
+    printf "${COLOR_GREEN}✓ Generated %d XML files in %.6f seconds${COLOR_RESET}\n" "$FILE_COUNT" "$GENERATION_TIME"
+
+    if [ "$FILE_COUNT" -ne 100 ]; then
+        echo -e "${COLOR_RED}✗ Expected 100 files, got $FILE_COUNT${COLOR_RESET}"
+        exit 1
+    fi
 fi
 
 # ============================================================================
@@ -421,12 +431,9 @@ printf "  %-30s %s\n" "Test data size:" "$DISK_USAGE"
 echo ""
 
 # ============================================================================
-# Cleanup
+# Test files are preserved for reuse on subsequent runs
+# To regenerate: rm -rf ./tests/output/hard_test/data/
 # ============================================================================
-echo -e "${COLOR_CYAN}Cleaning up test data...${COLOR_RESET}"
-rm -rf "$HARD_TEST_DIR"
-echo -e "${COLOR_GREEN}✓ Cleanup complete${COLOR_RESET}"
-echo ""
 
 # ============================================================================
 # Final Status Check

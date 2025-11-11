@@ -4,6 +4,10 @@
 #include <iostream>
 #include <algorithm>
 #include <functional>
+#include <thread>
+#include <mutex>
+#include <atomic>
+#include <chrono>
 
 namespace expocli {
 
@@ -396,6 +400,208 @@ std::vector<std::string> QueryExecutor::checkForAmbiguousAttributes(const Query&
     }
 
     return ambiguousAttrs;
+}
+
+size_t QueryExecutor::getOptimalThreadCount() {
+    // Get hardware concurrency (number of logical CPU cores)
+    size_t hwThreads = std::thread::hardware_concurrency();
+
+    // If we can't detect, default to 4 threads
+    if (hwThreads == 0) {
+        hwThreads = 4;
+    }
+
+    // Cap at 16 threads to avoid excessive overhead
+    return std::min(hwThreads, static_cast<size_t>(16));
+}
+
+bool QueryExecutor::shouldUseThreading(size_t fileCount) {
+    // Smart threshold calculation:
+    // - Single file: never use threading
+    // - 2-4 files: not worth the threading overhead
+    // - 5+ files: use threading
+
+    size_t threshold = 5;
+
+    // Also consider: if we have fewer files than threads,
+    // threading is only beneficial if files are large enough
+    // For now, use simple threshold
+
+    return fileCount >= threshold;
+}
+
+std::vector<ResultRow> QueryExecutor::executeMultithreaded(
+    const std::vector<std::string>& xmlFiles,
+    const Query& query,
+    size_t threadCount,
+    std::atomic<size_t>* completedCounter
+) {
+    std::vector<ResultRow> allResults;
+    std::mutex resultsMutex;
+
+    // Create thread pool
+    std::vector<std::thread> threads;
+    threads.reserve(threadCount);
+
+    // Atomic counter for completed files (local if not provided)
+    std::atomic<size_t> localCompleted{0};
+    std::atomic<size_t>* completed = completedCounter ? completedCounter : &localCompleted;
+
+    // Launch worker threads
+    for (size_t threadId = 0; threadId < threadCount; ++threadId) {
+        threads.emplace_back([&, threadId]() {
+            // Each thread processes every Nth file (strided access for load balancing)
+            for (size_t fileIdx = threadId; fileIdx < xmlFiles.size(); fileIdx += threadCount) {
+                try {
+                    // Process this file
+                    auto fileResults = processFile(xmlFiles[fileIdx], query);
+
+                    // Accumulate results (thread-safe)
+                    {
+                        std::lock_guard<std::mutex> lock(resultsMutex);
+                        allResults.insert(allResults.end(),
+                                        fileResults.begin(),
+                                        fileResults.end());
+                    }
+
+                    // Increment completed counter
+                    (*completed)++;
+
+                } catch (const std::exception& e) {
+                    std::cerr << "Error processing file " << xmlFiles[fileIdx]
+                              << ": " << e.what() << std::endl;
+                    (*completed)++;
+                }
+            }
+        });
+    }
+
+    // Wait for all threads to complete
+    for (auto& thread : threads) {
+        thread.join();
+    }
+
+    return allResults;
+}
+
+std::vector<ResultRow> QueryExecutor::executeWithProgress(
+    const Query& query,
+    ProgressCallback progressCallback,
+    ExecutionStats* stats
+) {
+    auto startTime = std::chrono::high_resolution_clock::now();
+
+    // Get all XML files
+    std::vector<std::string> xmlFiles = getXmlFiles(query.from_path);
+
+    if (xmlFiles.empty()) {
+        std::cerr << "Warning: No XML files found in " << query.from_path << std::endl;
+        return std::vector<ResultRow>();
+    }
+
+    size_t fileCount = xmlFiles.size();
+    bool useThreading = shouldUseThreading(fileCount);
+    size_t threadCount = useThreading ? getOptimalThreadCount() : 1;
+
+    // Update stats if provided
+    if (stats) {
+        stats->total_files = fileCount;
+        stats->thread_count = threadCount;
+        stats->used_threading = useThreading;
+    }
+
+    std::vector<ResultRow> allResults;
+
+    if (useThreading) {
+        // Multi-threaded execution with progress tracking
+        std::atomic<size_t> completed{0};
+
+        // Launch a progress monitoring thread
+        std::atomic<bool> done{false};
+        std::thread progressThread([&]() {
+            while (!done) {
+                if (progressCallback) {
+                    progressCallback(completed.load(), fileCount, threadCount);
+                }
+                std::this_thread::sleep_for(std::chrono::seconds(1));
+            }
+        });
+
+        // Execute query with multi-threading
+        allResults = executeMultithreaded(xmlFiles, query, threadCount, &completed);
+
+        // Stop progress thread
+        done = true;
+        progressThread.join();
+
+        // Final progress update
+        if (progressCallback) {
+            progressCallback(fileCount, fileCount, threadCount);
+        }
+
+    } else {
+        // Single-threaded execution (for small file counts)
+        for (size_t i = 0; i < xmlFiles.size(); ++i) {
+            try {
+                auto fileResults = processFile(xmlFiles[i], query);
+                allResults.insert(allResults.end(), fileResults.begin(), fileResults.end());
+
+                if (progressCallback) {
+                    progressCallback(i + 1, fileCount, 1);
+                }
+            } catch (const std::exception& e) {
+                std::cerr << "Error processing file " << xmlFiles[i] << ": " << e.what() << std::endl;
+            }
+        }
+    }
+
+    // Apply ORDER BY if specified
+    if (!query.order_by_fields.empty()) {
+        const std::string& orderField = query.order_by_fields[0];
+
+        std::sort(allResults.begin(), allResults.end(),
+            [&orderField](const ResultRow& a, const ResultRow& b) {
+                std::string aValue, bValue;
+
+                for (const auto& [field, value] : a) {
+                    if (field == orderField) {
+                        aValue = value;
+                        break;
+                    }
+                }
+
+                for (const auto& [field, value] : b) {
+                    if (field == orderField) {
+                        bValue = value;
+                        break;
+                    }
+                }
+
+                // Try numeric comparison first
+                try {
+                    double aNum = std::stod(aValue);
+                    double bNum = std::stod(bValue);
+                    return aNum < bNum;
+                } catch (...) {
+                    return aValue < bValue;
+                }
+            }
+        );
+    }
+
+    // Apply LIMIT if specified
+    if (query.limit >= 0 && static_cast<size_t>(query.limit) < allResults.size()) {
+        allResults.resize(query.limit);
+    }
+
+    auto endTime = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = endTime - startTime;
+
+    if (stats) {
+        stats->execution_time_seconds = elapsed.count();
+    }
+
+    return allResults;
 }
 
 } // namespace expocli
