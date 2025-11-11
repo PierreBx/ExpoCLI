@@ -46,7 +46,7 @@ if [ $? -ne 0 ]; then
 fi
 
 GENERATION_END=$(date +%s.%N)
-GENERATION_TIME=$(echo "$GENERATION_END - $GENERATION_START" | bc)
+GENERATION_TIME=$(awk "BEGIN {print $GENERATION_END - $GENERATION_START}")
 
 # Verify files were created
 FILE_COUNT=$(ls -1 "$HARD_TEST_DATA"/enterprise_*.xml 2>/dev/null | wc -l)
@@ -407,7 +407,7 @@ echo -e "${COLOR_BOLD}${COLOR_YELLOW}Phase 4: Performance Summary${COLOR_RESET}"
 PERF_START=$(date +%s.%N)
 echo -e "SELECT enterprise.company.name FROM \"$HARD_TEST_DATA/\";\nexit;" | $EXPOCLI_BIN > /dev/null 2>&1
 PERF_END=$(date +%s.%N)
-QUERY_TIME=$(echo "$PERF_END - $PERF_START" | bc)
+QUERY_TIME=$(awk "BEGIN {print $PERF_END - $PERF_START}")
 
 echo ""
 printf "  %-30s %d files\n" "Total XML files generated:" "$FILE_COUNT"

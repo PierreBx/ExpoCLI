@@ -75,26 +75,32 @@ echo ""
 ALIAS_CMD="alias expocli='${WRAPPER_SCRIPT}'"
 
 # Check if alias already exists
+echo "Checking expocli alias status..."
 if grep -q "alias expocli=" "$SHELL_RC" 2>/dev/null; then
-    echo -e "${YELLOW}⚠${NC}  expocli alias already exists in $SHELL_RC"
-    read -p "Do you want to update it? (y/n) " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        # Remove old alias
-        sed -i.bak '/alias expocli=/d' "$SHELL_RC"
-        echo -e "${GREEN}✓${NC} Removed old alias"
+    # Check if the existing alias points to the correct location
+    EXISTING_ALIAS=$(grep "alias expocli=" "$SHELL_RC" | tail -n 1)
+    if echo "$EXISTING_ALIAS" | grep -q "'${WRAPPER_SCRIPT}'"; then
+        echo -e "${GREEN}✓${NC} expocli alias already configured correctly in $SHELL_RC"
+        ALIAS_STATUS="already_exists"
     else
-        echo "Installation cancelled."
-        exit 0
+        # Alias exists but points to a different location - update it
+        echo -e "${YELLOW}⚠${NC}  expocli alias exists but points to different location"
+        echo "    Updating to: ${WRAPPER_SCRIPT}"
+        sed -i.bak '/alias expocli=/d' "$SHELL_RC"
+        echo "" >> "$SHELL_RC"
+        echo "# expocli - XML Query CLI (transparent Docker wrapper)" >> "$SHELL_RC"
+        echo "$ALIAS_CMD" >> "$SHELL_RC"
+        echo -e "${GREEN}✓${NC} Updated expocli alias in $SHELL_RC"
+        ALIAS_STATUS="updated"
     fi
+else
+    # Alias doesn't exist - add it
+    echo "" >> "$SHELL_RC"
+    echo "# expocli - XML Query CLI (transparent Docker wrapper)" >> "$SHELL_RC"
+    echo "$ALIAS_CMD" >> "$SHELL_RC"
+    echo -e "${GREEN}✓${NC} Added expocli alias to $SHELL_RC"
+    ALIAS_STATUS="added"
 fi
-
-# Add alias to shell RC
-echo "" >> "$SHELL_RC"
-echo "# expocli - XML Query CLI (transparent Docker wrapper)" >> "$SHELL_RC"
-echo "$ALIAS_CMD" >> "$SHELL_RC"
-
-echo -e "${GREEN}✓${NC} Added expocli alias to $SHELL_RC"
 echo ""
 
 # Make wrapper script executable (if not already)
