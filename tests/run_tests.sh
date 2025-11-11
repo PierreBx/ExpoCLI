@@ -242,6 +242,28 @@ run_test "ERR-003" \
     "XSD path not set"
 
 # ============================================================================
+# CATEGORY 11: HARD STRESS TEST - Complex Nested Structures at Scale
+# ============================================================================
+print_category "11. HARD STRESS TEST - Enterprise Scale"
+
+echo ""
+echo -e "${COLOR_BOLD}${COLOR_YELLOW}═══════════════════════════════════════════════════════════════${COLOR_RESET}"
+echo -e "${COLOR_BOLD}${COLOR_YELLOW}  Running comprehensive stress test with 100 generated files  ${COLOR_RESET}"
+echo -e "${COLOR_BOLD}${COLOR_YELLOW}  Complex nested structures: 4+ levels of nesting             ${COLOR_RESET}"
+echo -e "${COLOR_BOLD}${COLOR_YELLOW}  This may take several minutes...                             ${COLOR_RESET}"
+echo -e "${COLOR_BOLD}${COLOR_YELLOW}═══════════════════════════════════════════════════════════════${COLOR_RESET}"
+echo ""
+
+# Run the hard test script
+if bash "$TEST_DIR/hard_test.sh"; then
+    echo -e "${COLOR_GREEN}${COLOR_BOLD}✓ Hard stress test completed successfully${COLOR_RESET}"
+else
+    echo -e "${COLOR_RED}${COLOR_BOLD}✗ Hard stress test failed${COLOR_RESET}"
+fi
+
+echo ""
+
+# ============================================================================
 # Print Final Summary
 # ============================================================================
 print_summary
