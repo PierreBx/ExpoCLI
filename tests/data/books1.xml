@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<library>
+    <book isbn="978-1-23-456789-0">
+        <title>The Great Adventure</title>
+        <author>John Smith</author>
+        <year>2020</year>
+        <price>29.99</price>
+        <category>Fiction</category>
+    </book>
+    <book isbn="978-0-12-345678-9">
+        <title>Learning Programming</title>
+        <author>Jane Doe</author>
+        <year>2019</year>
+        <price>49.95</price>
+        <category>Technical</category>
+    </book>
+</library>

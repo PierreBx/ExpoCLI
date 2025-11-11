@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<library>
+    <book isbn="111-2-22-333333-4">
+        <title>Data Science Basics</title>
+        <author>Alice Johnson</author>
+        <year>2021</year>
+        <price>39.99</price>
+        <category>Technical</category>
+    </book>
+    <book isbn="555-6-77-888888-9">
+        <title>Mystery at Midnight</title>
+        <author>Bob Williams</author>
+        <year>2018</year>
+        <price>24.50</price>
+        <category>Fiction</category>
+    </book>
+    <book isbn="999-0-11-222222-3">
+        <title>Cooking for Beginners</title>
+        <year>2022</year>
+        <price>19.99</price>
+        <category>Lifestyle</category>
+    </book>
+</library>

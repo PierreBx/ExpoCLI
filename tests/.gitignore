@@ -1,0 +1,11 @@
+# Test output files
+output/*.xml
+output/*.out
+output/*.err
+
+# Test logs
+logs/*.log
+
+# Keep directory structure
+!output/.gitkeep
+!logs/.gitkeep

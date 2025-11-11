@@ -132,6 +132,10 @@ void printUsage(const char* programName) {
     std::cout << "Generation Commands:\n";
     std::cout << "  GENERATE XML <count>              Generate <count> XML files from XSD\n";
     std::cout << "  GENERATE XML <count> PREFIX <pre> Generate with custom filename prefix\n\n";
+    std::cout << "Validation Commands:\n";
+    std::cout << "  CHECK <file>        Validate a single XML file against XSD\n";
+    std::cout << "  CHECK <directory>   Validate all XML files in a directory\n";
+    std::cout << "  CHECK <pattern>     Validate files matching pattern (e.g., /path/*.xml)\n\n";
 }
 
 void executeQuery(const std::string& query) {

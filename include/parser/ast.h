@@ -24,6 +24,7 @@ enum class TokenType {
     GENERATE,
     XML,
     PREFIX,
+    CHECK,
     IDENTIFIER,
     STRING_LITERAL,
     NUMBER,

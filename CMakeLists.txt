@@ -41,6 +41,7 @@ set(SOURCES
     src/generator/xsd_parser.cpp
     src/generator/data_generator.cpp
     src/generator/xml_generator.cpp
+    src/validator/xml_validator.cpp
 )
 
 # Create executable

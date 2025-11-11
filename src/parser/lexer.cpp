@@ -177,6 +177,7 @@ TokenType Lexer::identifyKeyword(const std::string& word) const {
     if (upper == "GENERATE") return TokenType::GENERATE;
     if (upper == "XML") return TokenType::XML;
     if (upper == "PREFIX") return TokenType::PREFIX;
+    if (upper == "CHECK") return TokenType::CHECK;
 
     return TokenType::IDENTIFIER;
 }

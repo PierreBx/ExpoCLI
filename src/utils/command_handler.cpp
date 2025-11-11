@@ -2,9 +2,11 @@
 #include "parser/lexer.h"
 #include "generator/xsd_parser.h"
 #include "generator/xml_generator.h"
+#include "validator/xml_validator.h"
 #include <iostream>
 #include <filesystem>
 #include <fstream>
+#include <iomanip>
 
 namespace expocli {
 
@@ -33,6 +35,11 @@ bool CommandHandler::handleCommand(const std::string& input) {
     // Check if it's a GENERATE command
     if (tokens[0].type == TokenType::GENERATE) {
         return handleGenerateCommand(input);
+    }
+
+    // Check if it's a CHECK command
+    if (tokens[0].type == TokenType::CHECK) {
+        return handleCheckCommand(input);
     }
 
     // Not a recognized command, treat as query
@@ -306,6 +313,126 @@ bool CommandHandler::handleGenerateCommand(const std::string& input) {
         std::cerr << "Error generating XML files: " << e.what() << "\n";
         return true;
     }
+
+    return true;
+}
+
+bool CommandHandler::handleCheckCommand(const std::string& input) {
+    Lexer lexer(input);
+    auto tokens = lexer.tokenize();
+
+    // Expect: CHECK <path/pattern>
+    if (tokens.size() < 2) {
+        std::cerr << "Error: CHECK command requires a path or pattern\n";
+        std::cerr << "Usage: CHECK /path/to/file.xml\n";
+        std::cerr << "       CHECK /path/to/directory/\n";
+        std::cerr << "       CHECK /path/to/*.xml\n";
+        return true;
+    }
+
+    // Check if XSD is set
+    if (!context_.hasXsdPath()) {
+        std::cerr << "Error: XSD path not set. Use SET XSD <path> first\n";
+        return true;
+    }
+
+    // Collect path from remaining tokens
+    std::string pattern;
+    for (size_t i = 1; i < tokens.size(); ++i) {
+        if (tokens[i].type == TokenType::END_OF_INPUT) {
+            break;
+        }
+        // Build path from tokens
+        if (!pattern.empty() &&
+            tokens[i].type != TokenType::DOT &&
+            tokens[i].type != TokenType::SLASH &&
+            tokens[i-1].type != TokenType::DOT &&
+            tokens[i-1].type != TokenType::SLASH) {
+            // Add space for paths with spaces
+            if (tokens[i].type == TokenType::STRING_LITERAL ||
+                tokens[i-1].type == TokenType::STRING_LITERAL) {
+                pattern += " ";
+            }
+        }
+        pattern += tokens[i].value;
+    }
+
+    if (pattern.empty()) {
+        std::cerr << "Error: Pattern cannot be empty\n";
+        return true;
+    }
+
+    std::string xsdPath = context_.getXsdPath().value();
+
+    // Expand pattern to file list
+    std::vector<std::string> files = XmlValidator::expandPattern(pattern);
+
+    if (files.empty()) {
+        std::cerr << "No XML files found matching pattern: " << pattern << "\n";
+        return true;
+    }
+
+    std::cout << "\nValidating " << files.size() << " file(s) against XSD: "
+              << xsdPath << "\n\n";
+
+    // Validate all files
+    XmlValidator validator;
+    auto results = validator.validateFiles(files, xsdPath);
+
+    // Display results
+    int validCount = 0;
+    int invalidCount = 0;
+
+    for (const auto& [filename, result] : results) {
+        // Get just the filename for cleaner display
+        std::filesystem::path p(filename);
+        std::string displayName = p.filename().string();
+
+        if (result.isValid) {
+            std::cout << "✓ " << displayName;
+            if (!result.warnings.empty()) {
+                std::cout << " (" << result.warnings.size() << " warning(s))";
+            }
+            std::cout << "\n";
+            validCount++;
+
+            // Show warnings if any
+            if (!result.warnings.empty()) {
+                for (const auto& warning : result.warnings) {
+                    std::cout << "  ⚠ " << warning << "\n";
+                }
+            }
+        } else {
+            std::cout << "✗ " << displayName << " - INVALID\n";
+            invalidCount++;
+
+            // Show errors
+            for (const auto& error : result.errors) {
+                std::cout << "  ✗ " << error.message;
+                if (!error.path.empty()) {
+                    std::cout << " at " << error.path;
+                }
+                std::cout << "\n";
+            }
+
+            // Show warnings if any
+            if (!result.warnings.empty()) {
+                for (const auto& warning : result.warnings) {
+                    std::cout << "  ⚠ " << warning << "\n";
+                }
+            }
+        }
+    }
+
+    // Summary
+    std::cout << "\n" << std::string(60, '-') << "\n";
+    std::cout << "Summary: " << validCount << " valid, "
+              << invalidCount << " invalid";
+    if (validCount + invalidCount != static_cast<int>(files.size())) {
+        int errorCount = files.size() - validCount - invalidCount;
+        std::cout << ", " << errorCount << " error(s)";
+    }
+    std::cout << "\n";
 
     return true;
 }
