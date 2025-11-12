@@ -119,6 +119,14 @@ FieldPath Parser::parseFieldPath() {
         if (field.aggregate == AggregateFunc::COUNT && peek().type == TokenType::ASTERISK) {
             field.is_count_star = true;
             advance(); // consume *
+        } else if (peek().type == TokenType::AT) {
+            // Parse @attribute syntax inside aggregate
+            advance(); // consume @
+            if (peek().type != TokenType::IDENTIFIER) {
+                throw ParseError("Expected attribute name after '@' in aggregate function");
+            }
+            field.is_attribute = true;
+            field.attribute_name = advance().value;
         } else {
             // Parse field path inside aggregate function
             if (peek().type != TokenType::IDENTIFIER) {
@@ -147,6 +155,22 @@ FieldPath Parser::parseFieldPath() {
     if (peek().value == "FILE_NAME") {
         field.include_filename = true;
         advance();
+        return field;
+    }
+
+    // Check for attribute syntax (@attribute)
+    if (peek().type == TokenType::AT) {
+        advance(); // consume @
+
+        if (peek().type != TokenType::IDENTIFIER) {
+            throw ParseError("Expected attribute name after '@'");
+        }
+
+        field.is_attribute = true;
+        field.attribute_name = advance().value;
+
+        // Attributes can optionally have a path prefix (e.g., book.@isbn)
+        // For simplicity, we'll support standalone attributes first
         return field;
     }
 
@@ -402,13 +426,21 @@ void Parser::parseOrderByClause(Query& query) {
     expect(TokenType::ORDER, "Expected ORDER keyword");
     expect(TokenType::BY, "Expected BY keyword after ORDER");
 
-    // Parse field to order by
-    if (peek().type != TokenType::IDENTIFIER) {
+    // Parse field to order by (supports @attribute or regular field)
+    if (peek().type != TokenType::IDENTIFIER && peek().type != TokenType::AT) {
         throw ParseError("Expected field name after ORDER BY");
     }
 
     OrderByField orderByField;
-    orderByField.field_name = advance().value;
+    if (peek().type == TokenType::AT) {
+        advance(); // consume @
+        if (peek().type != TokenType::IDENTIFIER) {
+            throw ParseError("Expected attribute name after '@'");
+        }
+        orderByField.field_name = "@" + advance().value;
+    } else {
+        orderByField.field_name = advance().value;
+    }
 
     // Parse optional ASC/DESC (default is ASC)
     if (match(TokenType::DESC)) {
@@ -421,12 +453,20 @@ void Parser::parseOrderByClause(Query& query) {
 
     // Support multiple ORDER BY fields separated by commas
     while (match(TokenType::COMMA)) {
-        if (peek().type != TokenType::IDENTIFIER) {
+        if (peek().type != TokenType::IDENTIFIER && peek().type != TokenType::AT) {
             throw ParseError("Expected field name after comma in ORDER BY");
         }
 
         orderByField = OrderByField();  // Reset to defaults
-        orderByField.field_name = advance().value;
+        if (peek().type == TokenType::AT) {
+            advance(); // consume @
+            if (peek().type != TokenType::IDENTIFIER) {
+                throw ParseError("Expected attribute name after '@'");
+            }
+            orderByField.field_name = "@" + advance().value;
+        } else {
+            orderByField.field_name = advance().value;
+        }
 
         // Parse optional ASC/DESC
         if (match(TokenType::DESC)) {

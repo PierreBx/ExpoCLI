@@ -41,6 +41,10 @@ std::vector<Token> Lexer::tokenize() {
             tokens.emplace_back(TokenType::ASTERISK, "*", position_);
             advance();
         }
+        else if (current == '@') {
+            tokens.emplace_back(TokenType::AT, "@", position_);
+            advance();
+        }
         // Comparison operators
         else if (current == '<') {
             advance();

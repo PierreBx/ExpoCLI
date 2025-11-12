@@ -19,6 +19,32 @@ std::vector<XmlResult> XmlNavigator::extractValues(
         return results;
     }
 
+    // Handle attribute extraction (@attribute)
+    if (field.is_attribute) {
+        // Search for all nodes in the document and extract the attribute
+        std::function<void(const pugi::xml_node&)> findAllWithAttribute =
+            [&](const pugi::xml_node& node) {
+                if (!node) return;
+
+                // Check if this node has the requested attribute
+                pugi::xml_attribute attr = node.attribute(field.attribute_name.c_str());
+                if (attr) {
+                    std::string value = attr.value();
+                    if (!value.empty()) {
+                        results.push_back({filename, value});
+                    }
+                }
+
+                // Recursively search all children
+                for (pugi::xml_node child : node.children()) {
+                    findAllWithAttribute(child);
+                }
+            };
+
+        findAllWithAttribute(doc);
+        return results;
+    }
+
     if (field.components.empty()) {
         return results;
     }
@@ -179,6 +205,15 @@ std::string XmlNavigator::getNodeValue(
     const pugi::xml_node& node,
     const FieldPath& field
 ) {
+    // Handle attribute extraction
+    if (field.is_attribute) {
+        pugi::xml_attribute attr = node.attribute(field.attribute_name.c_str());
+        if (attr) {
+            return attr.value();
+        }
+        return "";
+    }
+
     if (field.components.empty()) {
         return "";
     }
@@ -210,6 +245,15 @@ std::string XmlNavigator::getNodeValueRelative(
     const FieldPath& field,
     size_t offset
 ) {
+    // Handle attribute extraction
+    if (field.is_attribute) {
+        pugi::xml_attribute attr = node.attribute(field.attribute_name.c_str());
+        if (attr) {
+            return attr.value();
+        }
+        return "";
+    }
+
     if (field.components.empty() || offset >= field.components.size()) {
         return "";
     }

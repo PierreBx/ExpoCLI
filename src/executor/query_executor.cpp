@@ -103,9 +103,13 @@ std::vector<ResultRow> QueryExecutor::execute(const Query& query) {
                 fieldName = "COUNT(*)";
             } else {
                 std::string path;
-                for (size_t i = 0; i < field.components.size(); ++i) {
-                    if (i > 0) path += ".";
-                    path += field.components[i];
+                if (field.is_attribute) {
+                    path = "@" + field.attribute_name;
+                } else {
+                    for (size_t i = 0; i < field.components.size(); ++i) {
+                        if (i > 0) path += ".";
+                        path += field.components[i];
+                    }
                 }
 
                 switch (field.aggregate) {
@@ -285,6 +289,8 @@ std::vector<ResultRow> QueryExecutor::processFile(
 
                 if (field.include_filename) {
                     fieldName = "FILE_NAME";
+                } else if (field.is_attribute) {
+                    fieldName = "@" + field.attribute_name;
                 } else {
                     fieldName = field.components.back();
                 }
@@ -330,21 +336,34 @@ std::vector<ResultRow> QueryExecutor::processFile(
                         // For IS NULL/IS NOT NULL, evaluate on nodes that have at least one SELECT field
                         // This ensures we're checking the right "level" of nodes
                         if (node.type() == pugi::node_element && node != *doc) {
-                            // Check if this node has at least one of the SELECT fields as a child
+                            // Check if this node has at least one of the SELECT fields as a child or attribute
                             for (const auto& selectField : query.select_fields) {
-                                if (!selectField.include_filename && selectField.components.size() == 1) {
-                                    pugi::xml_node foundNode = XmlNavigator::findFirstElementByName(node, selectField.components[0]);
-                                    if (foundNode && foundNode.parent() == node) {
+                                if (!selectField.include_filename) {
+                                    if (selectField.is_attribute) {
+                                        // For attributes, just check if this is an element node
                                         shouldEvaluate = true;
                                         break;
+                                    } else if (selectField.components.size() == 1) {
+                                        pugi::xml_node foundNode = XmlNavigator::findFirstElementByName(node, selectField.components[0]);
+                                        if (foundNode && foundNode.parent() == node) {
+                                            shouldEvaluate = true;
+                                            break;
+                                        }
                                     }
                                 }
                             }
                         }
                     } else {
-                        // Check if this node has the WHERE attribute as a direct child
-                        pugi::xml_node whereAttrNode = XmlNavigator::findFirstElementByName(node, whereField.components[0]);
-                        shouldEvaluate = (whereAttrNode && whereAttrNode.parent() == node);
+                        // Check if this node has the WHERE field
+                        if (whereField.is_attribute) {
+                            // For attributes, check if this node is an element node
+                            // The actual attribute value will be checked in evaluateWhereExpr
+                            shouldEvaluate = (node.type() == pugi::node_element && node != *doc);
+                        } else if (!whereField.components.empty()) {
+                            // Check if this node has the WHERE field as a direct child
+                            pugi::xml_node whereAttrNode = XmlNavigator::findFirstElementByName(node, whereField.components[0]);
+                            shouldEvaluate = (whereAttrNode && whereAttrNode.parent() == node);
+                        }
                     }
 
                     if (shouldEvaluate) {
@@ -359,6 +378,13 @@ std::vector<ResultRow> QueryExecutor::processFile(
                                 if (field.include_filename) {
                                     fieldName = "FILE_NAME";
                                     value = filename;
+                                } else if (field.is_attribute) {
+                                    fieldName = "@" + field.attribute_name;
+                                    // Extract attribute from current node
+                                    pugi::xml_attribute attr = node.attribute(field.attribute_name.c_str());
+                                    if (attr) {
+                                        value = attr.value();
+                                    }
                                 } else {
                                     fieldName = field.components.back();
 
@@ -421,6 +447,13 @@ std::vector<ResultRow> QueryExecutor::processFile(
                     if (field.include_filename) {
                         fieldName = "FILE_NAME";
                         value = filename;
+                    } else if (field.is_attribute) {
+                        fieldName = "@" + field.attribute_name;
+                        // Extract attribute from current node
+                        pugi::xml_attribute attr = node.attribute(field.attribute_name.c_str());
+                        if (attr) {
+                            value = attr.value();
+                        }
                     } else {
                         fieldName = field.components.back();
 
@@ -480,7 +513,12 @@ std::string QueryExecutor::computeAggregate(const FieldPath& field, const std::v
     }
 
     // Build the field name we're looking for
-    std::string targetField = field.components.back();
+    std::string targetField;
+    if (field.is_attribute) {
+        targetField = "@" + field.attribute_name;
+    } else {
+        targetField = field.components.back();
+    }
 
     // Collect all values for this field
     std::vector<double> numericValues;

@@ -244,9 +244,64 @@ run_test "AGG-007" \
     "79.9"
 
 # ============================================================================
-# CATEGORY 7: Configuration Commands
+# CATEGORY 7: XML Attribute Querying (@attr)
 # ============================================================================
-print_category "7. Configuration Commands"
+print_category "7. XML Attribute Querying"
+
+run_test "ATTR-001" \
+    "Basic attribute selection" \
+    'SELECT @isbn FROM "tests/data/books1.xml";' \
+    "978-1-23-456789-0"
+
+run_test "ATTR-002" \
+    "Multiple rows with attribute" \
+    'SELECT @isbn FROM "tests/data/books1.xml";' \
+    "978-0-12-345678-9"
+
+run_test "ATTR-003" \
+    "Mix attribute with regular field" \
+    'SELECT @isbn, title FROM "tests/data/books1.xml";' \
+    "978-1-23-456789-0"
+
+run_test "ATTR-004" \
+    "WHERE clause with attribute equals" \
+    'SELECT title FROM "tests/data/books1.xml" WHERE @isbn = "978-1-23-456789-0";' \
+    "The Great Adventure"
+
+run_test "ATTR-005" \
+    "WHERE clause with attribute LIKE" \
+    'SELECT title FROM "tests/data/books1.xml" WHERE @isbn LIKE /978-1-.*/;' \
+    "The Great Adventure"
+
+run_test "ATTR-006" \
+    "SELECT attribute with WHERE on attribute" \
+    'SELECT @isbn, title FROM "tests/data/books1.xml" WHERE @isbn = "978-0-12-345678-9";' \
+    "Learning Programming"
+
+run_test "ATTR-007" \
+    "COUNT aggregate with attribute" \
+    'SELECT COUNT(@isbn) FROM "tests/data/books1.xml";' \
+    "2"
+
+run_test "ATTR-008" \
+    "ORDER BY attribute DESC" \
+    'SELECT @isbn FROM "tests/data/books1.xml" ORDER BY @isbn DESC LIMIT 1;' \
+    "978-1-23-456789-0"
+
+run_test "ATTR-009" \
+    "ORDER BY attribute ASC" \
+    'SELECT @isbn FROM "tests/data/books1.xml" ORDER BY @isbn ASC LIMIT 1;' \
+    "978-1-23-456789-0"
+
+run_test "ATTR-010" \
+    "DISTINCT with attribute" \
+    'SELECT DISTINCT @isbn FROM "tests/data/books1.xml";' \
+    "978-1-23-456789-0"
+
+# ============================================================================
+# CATEGORY 8: Configuration Commands
+# ============================================================================
+print_category "8. Configuration Commands"
 
 run_test "CONFIG-001" \
     "SET XSD command" \
