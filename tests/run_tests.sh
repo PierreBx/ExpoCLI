@@ -208,6 +208,41 @@ run_test "DISTINCT-003" \
     'SELECT DISTINCT category FROM "tests/data/" LIMIT 2;' \
     "2 row"
 
+run_test "AGG-001" \
+    "COUNT(*) counts all rows" \
+    'SELECT COUNT(*) FROM "tests/data/";' \
+    "3"
+
+run_test "AGG-002" \
+    "SUM aggregates numeric values" \
+    'SELECT SUM(price) FROM "tests/data/books1.xml";' \
+    "79.9"
+
+run_test "AGG-003" \
+    "AVG computes average" \
+    'SELECT AVG(price) FROM "tests/data/books1.xml";' \
+    "39.9"
+
+run_test "AGG-004" \
+    "MIN finds minimum value" \
+    'SELECT MIN(price) FROM "tests/data/books1.xml";' \
+    "29.9"
+
+run_test "AGG-005" \
+    "MAX finds maximum value" \
+    'SELECT MAX(price) FROM "tests/data/books1.xml";' \
+    "49.9"
+
+run_test "AGG-006" \
+    "COUNT(field) counts non-null values" \
+    'SELECT COUNT(price) FROM "tests/data/books1.xml";' \
+    "2"
+
+run_test "AGG-007" \
+    "Multiple aggregates in one query" \
+    'SELECT COUNT(*), SUM(price), AVG(price) FROM "tests/data/books1.xml";' \
+    "79.9"
+
 # ============================================================================
 # CATEGORY 7: Configuration Commands
 # ============================================================================

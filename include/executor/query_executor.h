@@ -26,6 +26,9 @@ private:
         const std::string& filepath,
         const Query& query
     );
+
+    // Compute aggregate function value
+    static std::string computeAggregate(const FieldPath& field, const std::vector<ResultRow>& allResults);
 };
 
 } // namespace expocli

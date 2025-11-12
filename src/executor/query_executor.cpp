@@ -38,7 +38,94 @@ std::vector<ResultRow> QueryExecutor::execute(const Query& query) {
         return allResults;
     }
 
-    // Process each file
+    // Check if any aggregate functions are used
+    bool hasAggregates = false;
+    for (const auto& field : query.select_fields) {
+        if (field.aggregate != AggregateFunc::NONE) {
+            hasAggregates = true;
+            break;
+        }
+    }
+
+    // Process each file - for aggregates, we need to build a modified query
+    if (hasAggregates) {
+        // For aggregate queries, build a temporary query to extract fields
+        Query tempQuery;
+        tempQuery.from_path = query.from_path;
+        tempQuery.where = nullptr;  // We'll handle WHERE separately for now
+        tempQuery.distinct = false;
+        tempQuery.limit = -1;
+        tempQuery.offset = -1;
+
+        // Convert aggregate fields to regular fields for extraction
+        for (const auto& field : query.select_fields) {
+            if (field.aggregate != AggregateFunc::NONE && !field.is_count_star) {
+                // Extract the underlying field for aggregation
+                FieldPath extractField = field;
+                extractField.aggregate = AggregateFunc::NONE;
+                tempQuery.select_fields.push_back(extractField);
+            }
+        }
+
+        // For COUNT(*) with no other fields, we need at least one field to process
+        // We'll count based on file loading success
+        bool isOnlyCountStar = tempQuery.select_fields.empty();
+
+        if (!isOnlyCountStar) {
+            // Process files to extract field values
+            for (const auto& filepath : xmlFiles) {
+                try {
+                    auto fileResults = processFile(filepath, tempQuery);
+                    allResults.insert(allResults.end(), fileResults.begin(), fileResults.end());
+                } catch (const std::exception& e) {
+                    std::cerr << "Error processing file " << filepath << ": " << e.what() << std::endl;
+                }
+            }
+        } else {
+            // For COUNT(*) only, count files as rows
+            // For now, without WHERE clause support in pure COUNT(*), just count files
+            for (const auto& filepath : xmlFiles) {
+                try {
+                    auto doc = XmlLoader::load(filepath);
+                    // Each successfully loaded file counts as a row for COUNT(*)
+                    allResults.push_back(ResultRow());
+                } catch (const std::exception& e) {
+                    std::cerr << "Error processing file " << filepath << ": " << e.what() << std::endl;
+                }
+            }
+        }
+
+        // Now compute aggregates
+        ResultRow aggregateRow;
+        for (const auto& field : query.select_fields) {
+            std::string fieldName;
+            if (field.is_count_star) {
+                fieldName = "COUNT(*)";
+            } else {
+                std::string path;
+                for (size_t i = 0; i < field.components.size(); ++i) {
+                    if (i > 0) path += ".";
+                    path += field.components[i];
+                }
+
+                switch (field.aggregate) {
+                    case AggregateFunc::COUNT: fieldName = "COUNT(" + path + ")"; break;
+                    case AggregateFunc::SUM:   fieldName = "SUM(" + path + ")"; break;
+                    case AggregateFunc::AVG:   fieldName = "AVG(" + path + ")"; break;
+                    case AggregateFunc::MIN:   fieldName = "MIN(" + path + ")"; break;
+                    case AggregateFunc::MAX:   fieldName = "MAX(" + path + ")"; break;
+                    default: break;
+                }
+            }
+
+            std::string aggregateValue = computeAggregate(field, allResults);
+            aggregateRow.push_back({fieldName, aggregateValue});
+        }
+
+        return {aggregateRow};
+    }
+
+    // Non-aggregate query - process normally
     for (const auto& filepath : xmlFiles) {
         try {
             auto fileResults = processFile(filepath, query);
@@ -384,6 +471,82 @@ std::vector<ResultRow> QueryExecutor::processFile(
     }
 
     return results;
+}
+
+std::string QueryExecutor::computeAggregate(const FieldPath& field, const std::vector<ResultRow>& allResults) {
+    if (field.is_count_star) {
+        // COUNT(*) - count all rows
+        return std::to_string(allResults.size());
+    }
+
+    // Build the field name we're looking for
+    std::string targetField = field.components.back();
+
+    // Collect all values for this field
+    std::vector<double> numericValues;
+    size_t count = 0;
+
+    for (const auto& row : allResults) {
+        for (const auto& [fieldName, fieldValue] : row) {
+            if (fieldName == targetField && !fieldValue.empty()) {
+                try {
+                    double numValue = std::stod(fieldValue);
+                    numericValues.push_back(numValue);
+                    count++;
+                } catch (...) {
+                    // Not a number, skip for SUM/AVG/MIN/MAX but count for COUNT
+                    if (field.aggregate == AggregateFunc::COUNT) {
+                        count++;
+                    }
+                }
+                break; // Found the field in this row
+            }
+        }
+    }
+
+    switch (field.aggregate) {
+        case AggregateFunc::COUNT:
+            return std::to_string(count);
+
+        case AggregateFunc::SUM: {
+            if (numericValues.empty()) return "0";
+            double sum = 0;
+            for (double v : numericValues) {
+                sum += v;
+            }
+            return std::to_string(sum);
+        }
+
+        case AggregateFunc::AVG: {
+            if (numericValues.empty()) return "0";
+            double sum = 0;
+            for (double v : numericValues) {
+                sum += v;
+            }
+            return std::to_string(sum / numericValues.size());
+        }
+
+        case AggregateFunc::MIN: {
+            if (numericValues.empty()) return "";
+            double minVal = numericValues[0];
+            for (double v : numericValues) {
+                if (v < minVal) minVal = v;
+            }
+            return std::to_string(minVal);
+        }
+
+        case AggregateFunc::MAX: {
+            if (numericValues.empty()) return "";
+            double maxVal = numericValues[0];
+            for (double v : numericValues) {
+                if (v > maxVal) maxVal = v;
+            }
+            return std::to_string(maxVal);
+        }
+
+        default:
+            return "";
+    }
 }
 
 } // namespace expocli

@@ -37,6 +37,10 @@ std::vector<Token> Lexer::tokenize() {
             tokens.emplace_back(TokenType::RPAREN, ")", position_);
             advance();
         }
+        else if (current == '*') {
+            tokens.emplace_back(TokenType::ASTERISK, "*", position_);
+            advance();
+        }
         // Comparison operators
         else if (current == '<') {
             advance();
@@ -168,6 +172,11 @@ TokenType Lexer::identifyKeyword(const std::string& word) const {
     if (upper == "OFFSET") return TokenType::OFFSET;
     if (upper == "ASC") return TokenType::ASC;
     if (upper == "DESC") return TokenType::DESC;
+    if (upper == "COUNT") return TokenType::COUNT;
+    if (upper == "SUM") return TokenType::SUM;
+    if (upper == "AVG") return TokenType::AVG;
+    if (upper == "MIN") return TokenType::MIN;
+    if (upper == "MAX") return TokenType::MAX;
     if (upper == "IS") return TokenType::IS;
     if (upper == "NOT") return TokenType::NOT;
     if (upper == "NULL") return TokenType::NULL_LITERAL;

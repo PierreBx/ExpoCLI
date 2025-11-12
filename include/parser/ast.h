@@ -19,6 +19,12 @@ enum class TokenType {
     OFFSET,
     ASC,
     DESC,
+    COUNT,
+    SUM,
+    AVG,
+    MIN,
+    MAX,
+    ASTERISK,
     SET,
     SHOW,
     XSD,
@@ -76,10 +82,22 @@ enum class ComparisonOp {
     NOT_LIKE
 };
 
+// Aggregate function types
+enum class AggregateFunc {
+    NONE,
+    COUNT,
+    SUM,
+    AVG,
+    MIN,
+    MAX
+};
+
 // AST Node for field selection (e.g., breakfast_menu.food.name)
 struct FieldPath {
     std::vector<std::string> components; // ["breakfast_menu", "food", "name"]
     bool include_filename = false;       // Special case for FILE_NAME
+    AggregateFunc aggregate = AggregateFunc::NONE; // Aggregate function if any
+    bool is_count_star = false;          // Special case for COUNT(*)
 };
 
 // Logical operators for combining conditions

@@ -97,6 +97,52 @@ void Parser::expect(TokenType type, const std::string& message) {
 FieldPath Parser::parseFieldPath() {
     FieldPath field;
 
+    // Check for aggregate functions
+    TokenType currentType = peek().type;
+    if (currentType == TokenType::COUNT || currentType == TokenType::SUM ||
+        currentType == TokenType::AVG || currentType == TokenType::MIN || currentType == TokenType::MAX) {
+
+        // Map token type to aggregate function
+        switch (currentType) {
+            case TokenType::COUNT: field.aggregate = AggregateFunc::COUNT; break;
+            case TokenType::SUM:   field.aggregate = AggregateFunc::SUM; break;
+            case TokenType::AVG:   field.aggregate = AggregateFunc::AVG; break;
+            case TokenType::MIN:   field.aggregate = AggregateFunc::MIN; break;
+            case TokenType::MAX:   field.aggregate = AggregateFunc::MAX; break;
+            default: break;
+        }
+
+        advance(); // consume aggregate function keyword
+        expect(TokenType::LPAREN, "Expected '(' after aggregate function");
+
+        // Check for COUNT(*) special case
+        if (field.aggregate == AggregateFunc::COUNT && peek().type == TokenType::ASTERISK) {
+            field.is_count_star = true;
+            advance(); // consume *
+        } else {
+            // Parse field path inside aggregate function
+            if (peek().type != TokenType::IDENTIFIER) {
+                throw ParseError("Expected field identifier in aggregate function");
+            }
+
+            field.components.push_back(advance().value);
+
+            // Parse remaining components (separated by . or /)
+            while (peek().type == TokenType::DOT || peek().type == TokenType::SLASH) {
+                advance(); // consume separator
+
+                if (peek().type != TokenType::IDENTIFIER) {
+                    throw ParseError("Expected identifier after separator");
+                }
+
+                field.components.push_back(advance().value);
+            }
+        }
+
+        expect(TokenType::RPAREN, "Expected ')' after aggregate function argument");
+        return field;
+    }
+
     // Handle FILE_NAME special case
     if (peek().value == "FILE_NAME") {
         field.include_filename = true;
@@ -104,7 +150,7 @@ FieldPath Parser::parseFieldPath() {
         return field;
     }
 
-    // Parse first component
+    // Parse first component (regular field)
     if (peek().type != TokenType::IDENTIFIER) {
         throw ParseError("Expected field identifier");
     }
