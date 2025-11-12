@@ -25,6 +25,7 @@ enum class TokenType {
     MIN,
     MAX,
     ASTERISK,
+    AT,
     SET,
     SHOW,
     XSD,
@@ -92,12 +93,14 @@ enum class AggregateFunc {
     MAX
 };
 
-// AST Node for field selection (e.g., breakfast_menu.food.name)
+// AST Node for field selection (e.g., breakfast_menu.food.name or @isbn)
 struct FieldPath {
     std::vector<std::string> components; // ["breakfast_menu", "food", "name"]
     bool include_filename = false;       // Special case for FILE_NAME
     AggregateFunc aggregate = AggregateFunc::NONE; // Aggregate function if any
     bool is_count_star = false;          // Special case for COUNT(*)
+    bool is_attribute = false;           // True if this is an XML attribute (@attr)
+    std::string attribute_name;          // Attribute name (when is_attribute = true)
 };
 
 // Logical operators for combining conditions
