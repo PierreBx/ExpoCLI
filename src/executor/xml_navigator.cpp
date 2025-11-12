@@ -139,6 +139,25 @@ bool XmlNavigator::evaluateCondition(
         return !nodeValue.empty();
     }
 
+    // Special handling for IN and NOT_IN
+    if (condition.op == ComparisonOp::IN || condition.op == ComparisonOp::NOT_IN) {
+        std::string nodeValue = getNodeValue(node, condition.field);
+        if (nodeValue.empty()) {
+            return false;
+        }
+
+        // Check if nodeValue exists in the values list
+        bool found = false;
+        for (const auto& val : condition.values) {
+            if (nodeValue == val) {
+                found = true;
+                break;
+            }
+        }
+
+        return (condition.op == ComparisonOp::IN) ? found : !found;
+    }
+
     std::string nodeValue = getNodeValue(node, condition.field);
 
     if (nodeValue.empty()) {
@@ -164,6 +183,25 @@ bool XmlNavigator::evaluateCondition(
         // IS NOT NULL: true if attribute IS present (nodeValue is not empty)
         std::string nodeValue = getNodeValueRelative(node, condition.field, parentDepth);
         return !nodeValue.empty();
+    }
+
+    // Special handling for IN and NOT_IN
+    if (condition.op == ComparisonOp::IN || condition.op == ComparisonOp::NOT_IN) {
+        std::string nodeValue = getNodeValueRelative(node, condition.field, parentDepth);
+        if (nodeValue.empty()) {
+            return false;
+        }
+
+        // Check if nodeValue exists in the values list
+        bool found = false;
+        for (const auto& val : condition.values) {
+            if (nodeValue == val) {
+                found = true;
+                break;
+            }
+        }
+
+        return (condition.op == ComparisonOp::IN) ? found : !found;
     }
 
     std::string nodeValue = getNodeValueRelative(node, condition.field, parentDepth);

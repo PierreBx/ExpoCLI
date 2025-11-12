@@ -54,6 +54,7 @@ enum class TokenType {
     NOT,
     NULL_LITERAL,
     LIKE,
+    IN,
     REGEX_LITERAL,
     END_OF_INPUT,
     INVALID
@@ -80,7 +81,9 @@ enum class ComparisonOp {
     IS_NULL,
     IS_NOT_NULL,
     LIKE,
-    NOT_LIKE
+    NOT_LIKE,
+    IN,
+    NOT_IN
 };
 
 // Aggregate function types
@@ -121,6 +124,7 @@ struct WhereCondition : public WhereExpr {
     ComparisonOp op;
     std::string value;
     bool is_numeric;
+    std::vector<std::string> values;  // For IN/NOT_IN operators
 };
 
 // Logical combination of conditions (AND/OR)

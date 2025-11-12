@@ -341,6 +341,76 @@ std::unique_ptr<WhereExpr> Parser::parseWhereCondition() {
         condition->is_numeric = false;
         return condition;
     }
+    else if (peek().type == TokenType::NOT) {
+        // Check for NOT IN
+        advance(); // consume NOT
+        if (peek().type == TokenType::IN) {
+            advance(); // consume IN
+            condition->op = ComparisonOp::NOT_IN;
+
+            // Expect (value1, value2, ...)
+            expect(TokenType::LPAREN, "Expected '(' after NOT IN");
+
+            // Parse comma-separated values
+            do {
+                Token valueToken = peek();
+                if (valueToken.type == TokenType::NUMBER ||
+                    valueToken.type == TokenType::STRING_LITERAL ||
+                    valueToken.type == TokenType::IDENTIFIER) {
+                    condition->values.push_back(advance().value);
+                } else {
+                    throw ParseError("Expected value in NOT IN list");
+                }
+
+                // Check for comma or closing paren
+                if (peek().type == TokenType::COMMA) {
+                    advance(); // consume comma
+                } else if (peek().type == TokenType::RPAREN) {
+                    break;
+                } else {
+                    throw ParseError("Expected ',' or ')' in NOT IN list");
+                }
+            } while (true);
+
+            expect(TokenType::RPAREN, "Expected ')' after NOT IN list");
+            condition->is_numeric = false;
+            return condition;
+        } else {
+            throw ParseError("Expected IN after NOT in WHERE clause");
+        }
+    }
+    else if (peek().type == TokenType::IN) {
+        advance(); // consume IN
+        condition->op = ComparisonOp::IN;
+
+        // Expect (value1, value2, ...)
+        expect(TokenType::LPAREN, "Expected '(' after IN");
+
+        // Parse comma-separated values
+        do {
+            Token valueToken = peek();
+            if (valueToken.type == TokenType::NUMBER ||
+                valueToken.type == TokenType::STRING_LITERAL ||
+                valueToken.type == TokenType::IDENTIFIER) {
+                condition->values.push_back(advance().value);
+            } else {
+                throw ParseError("Expected value in IN list");
+            }
+
+            // Check for comma or closing paren
+            if (peek().type == TokenType::COMMA) {
+                advance(); // consume comma
+            } else if (peek().type == TokenType::RPAREN) {
+                break;
+            } else {
+                throw ParseError("Expected ',' or ')' in IN list");
+            }
+        } while (true);
+
+        expect(TokenType::RPAREN, "Expected ')' after IN list");
+        condition->is_numeric = false;
+        return condition;
+    }
 
     // Parse standard comparison operator
     condition->op = parseComparisonOp();

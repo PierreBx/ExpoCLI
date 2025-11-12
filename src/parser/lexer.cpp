@@ -185,6 +185,7 @@ TokenType Lexer::identifyKeyword(const std::string& word) const {
     if (upper == "NOT") return TokenType::NOT;
     if (upper == "NULL") return TokenType::NULL_LITERAL;
     if (upper == "LIKE") return TokenType::LIKE;
+    if (upper == "IN") return TokenType::IN;
     if (upper == "SET") return TokenType::SET;
     if (upper == "SHOW") return TokenType::SHOW;
     if (upper == "XSD") return TokenType::XSD;

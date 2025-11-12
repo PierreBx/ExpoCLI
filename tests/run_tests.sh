@@ -299,9 +299,64 @@ run_test "ATTR-010" \
     "978-1-23-456789-0"
 
 # ============================================================================
-# CATEGORY 8: Configuration Commands
+# CATEGORY 8: IN Operator
 # ============================================================================
-print_category "8. Configuration Commands"
+print_category "8. IN Operator"
+
+run_test "IN-001" \
+    "Basic IN with string values" \
+    'SELECT title FROM "tests/data/books1.xml" WHERE title IN ("The Great Adventure", "Learning Programming");' \
+    "The Great Adventure"
+
+run_test "IN-002" \
+    "IN with single value" \
+    'SELECT title FROM "tests/data/books1.xml" WHERE title IN ("The Great Adventure");' \
+    "The Great Adventure"
+
+run_test "IN-003" \
+    "IN with numeric values" \
+    'SELECT title FROM "tests/data/books1.xml" WHERE year IN (2019, 2020);' \
+    "Learning Programming"
+
+run_test "IN-004" \
+    "IN with no matches" \
+    'SELECT title FROM "tests/data/books1.xml" WHERE title IN ("Nonexistent Book");' \
+    "No results found"
+
+run_test "IN-005" \
+    "NOT IN operator" \
+    'SELECT title FROM "tests/data/books1.xml" WHERE title NOT IN ("The Great Adventure");' \
+    "Learning Programming"
+
+run_test "IN-006" \
+    "NOT IN with multiple values" \
+    'SELECT title FROM "tests/data/books1.xml" WHERE year NOT IN (2019);' \
+    "The Great Adventure"
+
+run_test "IN-007" \
+    "IN with attributes" \
+    'SELECT title FROM "tests/data/books1.xml" WHERE @isbn IN ("978-1-23-456789-0", "978-0-12-345678-9");' \
+    "The Great Adventure"
+
+run_test "IN-008" \
+    "NOT IN with attributes" \
+    'SELECT title FROM "tests/data/books1.xml" WHERE @isbn NOT IN ("978-0-12-345678-9");' \
+    "The Great Adventure"
+
+run_test "IN-009" \
+    "IN with mixed SELECT fields" \
+    'SELECT title, @isbn FROM "tests/data/books1.xml" WHERE @isbn IN ("978-1-23-456789-0");' \
+    "978-1-23-456789-0"
+
+run_test "IN-010" \
+    "IN combined with AND" \
+    'SELECT title FROM "tests/data/books1.xml" WHERE title IN ("The Great Adventure", "Learning Programming") AND year = 2020;' \
+    "The Great Adventure"
+
+# ============================================================================
+# CATEGORY 9: Configuration Commands
+# ============================================================================
+print_category "9. Configuration Commands"
 
 run_test "CONFIG-001" \
     "SET XSD command" \
@@ -324,9 +379,9 @@ run_test "CONFIG-004" \
     "tests/output"
 
 # ============================================================================
-# CATEGORY 8: XML Generation
+# CATEGORY 10: XML Generation
 # ============================================================================
-print_category "8. XML Generation"
+print_category "10. XML Generation"
 
 run_test "GEN-001" \
     "Generate XML files" \
@@ -342,9 +397,9 @@ run_test "GEN-002" \
 rm -f tests/output/generated_*.xml tests/output/test_*.xml 2>/dev/null
 
 # ============================================================================
-# CATEGORY 9: XML Validation (CHECK Command)
+# CATEGORY 11: XML Validation (CHECK Command)
 # ============================================================================
-print_category "9. XML Validation"
+print_category "11. XML Validation"
 
 run_test "CHECK-001" \
     "Validate single file" \
@@ -362,9 +417,9 @@ run_test "CHECK-003" \
     "Summary:.*valid"
 
 # ============================================================================
-# CATEGORY 10: Error Handling
+# CATEGORY 12: Error Handling
 # ============================================================================
-print_category "10. Error Handling"
+print_category "12. Error Handling"
 
 run_test "ERR-001" \
     "Invalid query syntax" \
@@ -382,9 +437,9 @@ run_test "ERR-003" \
     "XSD path not set"
 
 # ============================================================================
-# CATEGORY 11: HARD STRESS TEST - Complex Nested Structures at Scale
+# CATEGORY 13: HARD STRESS TEST - Complex Nested Structures at Scale
 # ============================================================================
-print_category "11. HARD STRESS TEST - Enterprise Scale"
+print_category "13. HARD STRESS TEST - Enterprise Scale"
 
 echo ""
 echo -e "${COLOR_BOLD}${COLOR_YELLOW}═══════════════════════════════════════════════════════════════${COLOR_RESET}"
