@@ -119,11 +119,17 @@ std::vector<ResultRow> QueryExecutor::execute(const Query& query) {
         for (const auto& field : query.select_fields) {
             std::string fieldName;
             std::string path;
+
+            // Add leading dot for partial paths
+            if (field.is_partial_path) {
+                path = ".";
+            }
+
             if (field.is_attribute) {
-                path = "@" + field.attribute_name;
+                path += "@" + field.attribute_name;
             } else if (!field.aggregate_arg.empty()) {
                 // Use aggregate_arg if it was set by parseSelectField()
-                path = field.aggregate_arg;
+                path += field.aggregate_arg;
             } else {
                 for (size_t i = 0; i < field.components.size(); ++i) {
                     if (i > 0) path += ".";
