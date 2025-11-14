@@ -70,3 +70,6 @@ xmlquery
 *.tmp
 *.bak
 *.backup
+
+# Test output directories
+tests/output/
