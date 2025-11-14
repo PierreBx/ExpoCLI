@@ -50,27 +50,31 @@ std::vector<XmlResult> XmlNavigator::extractValues(
         return results;
     }
 
-    // Single component: match only at top level (direct children of root element)
+    // Single component: search recursively through entire document
     if (field.components.size() == 1) {
-        // Find the root element (first element child of document)
-        pugi::xml_node root;
-        for (pugi::xml_node child : doc.children()) {
-            if (child.type() == pugi::node_element) {
-                root = child;
-                break;
-            }
-        }
+        const std::string& targetName = field.components[0];
 
-        if (root) {
-            // Look for direct children of root with the target name
-            for (pugi::xml_node child : root.children(field.components[0].c_str())) {
-                std::string value = child.child_value();
-                if (!value.empty()) {
-                    results.push_back({filename, value});
+        // Recursive search function to find all elements with the target name
+        std::function<void(const pugi::xml_node&)> findAllByName =
+            [&](const pugi::xml_node& node) {
+                if (!node) return;
+
+                // Check if this element matches the target name
+                if (node.type() == pugi::node_element &&
+                    std::string(node.name()) == targetName) {
+                    std::string value = node.child_value();
+                    if (!value.empty()) {
+                        results.push_back({filename, value});
+                    }
                 }
-            }
-        }
 
+                // Recursively search all children
+                for (pugi::xml_node child : node.children()) {
+                    findAllByName(child);
+                }
+            };
+
+        findAllByName(doc);
         return results;
     }
 
