@@ -20,6 +20,32 @@ std::vector<XmlResult> XmlNavigator::extractValues(
         return results;
     }
 
+    // Handle attribute extraction (@attribute)
+    if (field.is_attribute) {
+        // Search for all nodes in the document and extract the attribute
+        std::function<void(const pugi::xml_node&)> findAllWithAttribute =
+            [&](const pugi::xml_node& node) {
+                if (!node) return;
+
+                // Check if this node has the requested attribute
+                pugi::xml_attribute attr = node.attribute(field.attribute_name.c_str());
+                if (attr) {
+                    std::string value = attr.value();
+                    if (!value.empty()) {
+                        results.push_back({filename, value});
+                    }
+                }
+
+                // Recursively search all children
+                for (pugi::xml_node child : node.children()) {
+                    findAllWithAttribute(child);
+                }
+            };
+
+        findAllWithAttribute(doc);
+        return results;
+    }
+
     if (field.components.empty()) {
         return results;
     }
@@ -115,6 +141,25 @@ bool XmlNavigator::evaluateCondition(
         return !nodeValue.empty();
     }
 
+    // Special handling for IN and NOT_IN
+    if (condition.op == ComparisonOp::IN || condition.op == ComparisonOp::NOT_IN) {
+        std::string nodeValue = getNodeValue(node, condition.field);
+        if (nodeValue.empty()) {
+            return false;
+        }
+
+        // Check if nodeValue exists in the values list
+        bool found = false;
+        for (const auto& val : condition.values) {
+            if (nodeValue == val) {
+                found = true;
+                break;
+            }
+        }
+
+        return (condition.op == ComparisonOp::IN) ? found : !found;
+    }
+
     std::string nodeValue = getNodeValue(node, condition.field);
 
     if (nodeValue.empty()) {
@@ -140,6 +185,25 @@ bool XmlNavigator::evaluateCondition(
         // IS NOT NULL: true if attribute IS present (nodeValue is not empty)
         std::string nodeValue = getNodeValueRelative(node, condition.field, parentDepth);
         return !nodeValue.empty();
+    }
+
+    // Special handling for IN and NOT_IN
+    if (condition.op == ComparisonOp::IN || condition.op == ComparisonOp::NOT_IN) {
+        std::string nodeValue = getNodeValueRelative(node, condition.field, parentDepth);
+        if (nodeValue.empty()) {
+            return false;
+        }
+
+        // Check if nodeValue exists in the values list
+        bool found = false;
+        for (const auto& val : condition.values) {
+            if (nodeValue == val) {
+                found = true;
+                break;
+            }
+        }
+
+        return (condition.op == ComparisonOp::IN) ? found : !found;
     }
 
     std::string nodeValue = getNodeValueRelative(node, condition.field, parentDepth);
@@ -244,6 +308,15 @@ std::string XmlNavigator::getNodeValue(
     const pugi::xml_node& node,
     const FieldPath& field
 ) {
+    // Handle attribute extraction
+    if (field.is_attribute) {
+        pugi::xml_attribute attr = node.attribute(field.attribute_name.c_str());
+        if (attr) {
+            return attr.value();
+        }
+        return "";
+    }
+
     if (field.components.empty()) {
         return "";
     }
@@ -273,6 +346,15 @@ std::string XmlNavigator::getNodeValueRelative(
     const FieldPath& field,
     size_t offset
 ) {
+    // Handle attribute extraction
+    if (field.is_attribute) {
+        pugi::xml_attribute attr = node.attribute(field.attribute_name.c_str());
+        if (attr) {
+            return attr.value();
+        }
+        return "";
+    }
+
     if (field.components.empty() || offset >= field.components.size()) {
         return "";
     }

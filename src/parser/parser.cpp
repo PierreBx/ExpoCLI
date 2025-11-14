@@ -12,6 +12,11 @@ std::unique_ptr<Query> Parser::parse() {
     // Parse SELECT clause
     expect(TokenType::SELECT, "Expected SELECT keyword");
 
+    // Parse optional DISTINCT
+    if (match(TokenType::DISTINCT)) {
+        query->distinct = true;
+    }
+
     // Parse field list (may include aggregations)
     query->select_fields.push_back(parseSelectField());
 
@@ -55,6 +60,11 @@ std::unique_ptr<Query> Parser::parse() {
     // Parse optional LIMIT clause
     if (check(TokenType::LIMIT)) {
         parseLimitClause(*query);
+    }
+
+    // Parse optional OFFSET clause
+    if (check(TokenType::OFFSET)) {
+        parseOffsetClause(*query);
     }
 
     // Ensure we're at the end
@@ -127,6 +137,60 @@ void Parser::expect(TokenType type, const std::string& message) {
 FieldPath Parser::parseFieldPath() {
     FieldPath field;
 
+    // Check for aggregate functions
+    TokenType currentType = peek().type;
+    if (currentType == TokenType::COUNT || currentType == TokenType::SUM ||
+        currentType == TokenType::AVG || currentType == TokenType::MIN || currentType == TokenType::MAX) {
+
+        // Map token type to aggregate function
+        switch (currentType) {
+            case TokenType::COUNT: field.aggregate = AggregateFunc::COUNT; break;
+            case TokenType::SUM:   field.aggregate = AggregateFunc::SUM; break;
+            case TokenType::AVG:   field.aggregate = AggregateFunc::AVG; break;
+            case TokenType::MIN:   field.aggregate = AggregateFunc::MIN; break;
+            case TokenType::MAX:   field.aggregate = AggregateFunc::MAX; break;
+            default: break;
+        }
+
+        advance(); // consume aggregate function keyword
+        expect(TokenType::LPAREN, "Expected '(' after aggregate function");
+
+        // Check for COUNT(*) special case
+        if (field.aggregate == AggregateFunc::COUNT && peek().type == TokenType::ASTERISK) {
+            field.is_count_star = true;
+            advance(); // consume *
+        } else if (peek().type == TokenType::AT) {
+            // Parse @attribute syntax inside aggregate
+            advance(); // consume @
+            if (peek().type != TokenType::IDENTIFIER) {
+                throw ParseError("Expected attribute name after '@' in aggregate function");
+            }
+            field.is_attribute = true;
+            field.attribute_name = advance().value;
+        } else {
+            // Parse field path inside aggregate function
+            if (peek().type != TokenType::IDENTIFIER) {
+                throw ParseError("Expected field identifier in aggregate function");
+            }
+
+            field.components.push_back(advance().value);
+
+            // Parse remaining components (separated by . or /)
+            while (peek().type == TokenType::DOT || peek().type == TokenType::SLASH) {
+                advance(); // consume separator
+
+                if (peek().type != TokenType::IDENTIFIER) {
+                    throw ParseError("Expected identifier after separator");
+                }
+
+                field.components.push_back(advance().value);
+            }
+        }
+
+        expect(TokenType::RPAREN, "Expected ')' after aggregate function argument");
+        return field;
+    }
+
     // Handle FILE_NAME special case
     if (peek().value == "FILE_NAME") {
         field.include_filename = true;
@@ -134,7 +198,23 @@ FieldPath Parser::parseFieldPath() {
         return field;
     }
 
-    // Parse first component
+    // Check for attribute syntax (@attribute)
+    if (peek().type == TokenType::AT) {
+        advance(); // consume @
+
+        if (peek().type != TokenType::IDENTIFIER) {
+            throw ParseError("Expected attribute name after '@'");
+        }
+
+        field.is_attribute = true;
+        field.attribute_name = advance().value;
+
+        // Attributes can optionally have a path prefix (e.g., book.@isbn)
+        // For simplicity, we'll support standalone attributes first
+        return field;
+    }
+
+    // Parse first component (regular field)
     if (peek().type != TokenType::IDENTIFIER) {
         throw ParseError("Expected field identifier");
     }
@@ -438,6 +518,76 @@ std::unique_ptr<WhereExpr> Parser::parseWhereCondition() {
         condition->is_numeric = false;
         return condition;
     }
+    else if (peek().type == TokenType::NOT) {
+        // Check for NOT IN
+        advance(); // consume NOT
+        if (peek().type == TokenType::IN) {
+            advance(); // consume IN
+            condition->op = ComparisonOp::NOT_IN;
+
+            // Expect (value1, value2, ...)
+            expect(TokenType::LPAREN, "Expected '(' after NOT IN");
+
+            // Parse comma-separated values
+            do {
+                Token valueToken = peek();
+                if (valueToken.type == TokenType::NUMBER ||
+                    valueToken.type == TokenType::STRING_LITERAL ||
+                    valueToken.type == TokenType::IDENTIFIER) {
+                    condition->values.push_back(advance().value);
+                } else {
+                    throw ParseError("Expected value in NOT IN list");
+                }
+
+                // Check for comma or closing paren
+                if (peek().type == TokenType::COMMA) {
+                    advance(); // consume comma
+                } else if (peek().type == TokenType::RPAREN) {
+                    break;
+                } else {
+                    throw ParseError("Expected ',' or ')' in NOT IN list");
+                }
+            } while (true);
+
+            expect(TokenType::RPAREN, "Expected ')' after NOT IN list");
+            condition->is_numeric = false;
+            return condition;
+        } else {
+            throw ParseError("Expected IN after NOT in WHERE clause");
+        }
+    }
+    else if (peek().type == TokenType::IN) {
+        advance(); // consume IN
+        condition->op = ComparisonOp::IN;
+
+        // Expect (value1, value2, ...)
+        expect(TokenType::LPAREN, "Expected '(' after IN");
+
+        // Parse comma-separated values
+        do {
+            Token valueToken = peek();
+            if (valueToken.type == TokenType::NUMBER ||
+                valueToken.type == TokenType::STRING_LITERAL ||
+                valueToken.type == TokenType::IDENTIFIER) {
+                condition->values.push_back(advance().value);
+            } else {
+                throw ParseError("Expected value in IN list");
+            }
+
+            // Check for comma or closing paren
+            if (peek().type == TokenType::COMMA) {
+                advance(); // consume comma
+            } else if (peek().type == TokenType::RPAREN) {
+                break;
+            } else {
+                throw ParseError("Expected ',' or ')' in IN list");
+            }
+        } while (true);
+
+        expect(TokenType::RPAREN, "Expected ')' after IN list");
+        condition->is_numeric = false;
+        return condition;
+    }
 
     // Parse standard comparison operator
     condition->op = parseComparisonOp();
@@ -523,32 +673,56 @@ void Parser::parseOrderByClause(Query& query) {
     expect(TokenType::ORDER, "Expected ORDER keyword");
     expect(TokenType::BY, "Expected BY keyword after ORDER");
 
-    // Parse field to order by
-    if (peek().type != TokenType::IDENTIFIER) {
+    // Parse field to order by (supports @attribute or regular field)
+    if (peek().type != TokenType::IDENTIFIER && peek().type != TokenType::AT) {
         throw ParseError("Expected field name after ORDER BY");
     }
 
-    std::string fieldName = advance().value;
-    query.order_by_fields.push_back(fieldName);
-
-    // Skip optional ASC/DESC for now (default is ASC)
-    if (match(TokenType::ASC) || match(TokenType::DESC)) {
-        // For Phase 2, we'll just store the field name
-        // Future enhancement: store sort direction
+    OrderByField orderByField;
+    if (peek().type == TokenType::AT) {
+        advance(); // consume @
+        if (peek().type != TokenType::IDENTIFIER) {
+            throw ParseError("Expected attribute name after '@'");
+        }
+        orderByField.field_name = "@" + advance().value;
+    } else {
+        orderByField.field_name = advance().value;
     }
+
+    // Parse optional ASC/DESC (default is ASC)
+    if (match(TokenType::DESC)) {
+        orderByField.direction = SortDirection::DESC;
+    } else if (match(TokenType::ASC)) {
+        orderByField.direction = SortDirection::ASC;
+    }
+
+    query.order_by_fields.push_back(orderByField);
 
     // Support multiple ORDER BY fields separated by commas
     while (match(TokenType::COMMA)) {
-        if (peek().type != TokenType::IDENTIFIER) {
+        if (peek().type != TokenType::IDENTIFIER && peek().type != TokenType::AT) {
             throw ParseError("Expected field name after comma in ORDER BY");
         }
-        fieldName = advance().value;
-        query.order_by_fields.push_back(fieldName);
 
-        // Skip optional ASC/DESC
-        if (match(TokenType::ASC) || match(TokenType::DESC)) {
-            // Future enhancement: store sort direction
+        orderByField = OrderByField();  // Reset to defaults
+        if (peek().type == TokenType::AT) {
+            advance(); // consume @
+            if (peek().type != TokenType::IDENTIFIER) {
+                throw ParseError("Expected attribute name after '@'");
+            }
+            orderByField.field_name = "@" + advance().value;
+        } else {
+            orderByField.field_name = advance().value;
         }
+
+        // Parse optional ASC/DESC
+        if (match(TokenType::DESC)) {
+            orderByField.direction = SortDirection::DESC;
+        } else if (match(TokenType::ASC)) {
+            orderByField.direction = SortDirection::ASC;
+        }
+
+        query.order_by_fields.push_back(orderByField);
     }
 }
 
@@ -568,6 +742,25 @@ void Parser::parseLimitClause(Query& query) {
         throw ParseError("Invalid LIMIT value");
     } catch (const std::out_of_range&) {
         throw ParseError("LIMIT value out of range");
+    }
+}
+
+void Parser::parseOffsetClause(Query& query) {
+    expect(TokenType::OFFSET, "Expected OFFSET keyword");
+
+    if (peek().type != TokenType::NUMBER) {
+        throw ParseError("Expected number after OFFSET");
+    }
+
+    try {
+        query.offset = std::stoi(advance().value);
+        if (query.offset < 0) {
+            throw ParseError("OFFSET value must be non-negative");
+        }
+    } catch (const std::invalid_argument&) {
+        throw ParseError("Invalid OFFSET value");
+    } catch (const std::out_of_range&) {
+        throw ParseError("OFFSET value out of range");
     }
 }
 

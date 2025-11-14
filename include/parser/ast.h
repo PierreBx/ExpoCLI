@@ -10,13 +10,22 @@ namespace expocli {
 // Token types for the lexer
 enum class TokenType {
     SELECT,
+    DISTINCT,
     FROM,
     WHERE,
     ORDER,
     BY,
     LIMIT,
+    OFFSET,
     ASC,
     DESC,
+    COUNT,
+    SUM,
+    AVG,
+    MIN,
+    MAX,
+    ASTERISK,
+    AT,
     SET,
     SHOW,
     XSD,
@@ -28,12 +37,6 @@ enum class TokenType {
     VERBOSE,
     FOR,
     IN,
-    AT,
-    COUNT,
-    SUM,
-    AVG,
-    MIN,
-    MAX,
     GROUP,
     HAVING,
     AS,
@@ -83,10 +86,12 @@ enum class ComparisonOp {
     IS_NULL,
     IS_NOT_NULL,
     LIKE,
-    NOT_LIKE
+    NOT_LIKE,
+    IN,
+    NOT_IN
 };
 
-// Aggregation function types
+// Aggregate function types
 enum class AggregateFunc {
     NONE,   // Not an aggregation
     COUNT,
@@ -96,7 +101,7 @@ enum class AggregateFunc {
     MAX
 };
 
-// AST Node for field selection (e.g., breakfast_menu.food.name)
+// AST Node for field selection (e.g., breakfast_menu.food.name or @isbn)
 struct FieldPath {
     std::vector<std::string> components; // ["breakfast_menu", "food", "name"]
     bool include_filename = false;       // Special case for FILE_NAME
@@ -107,6 +112,11 @@ struct FieldPath {
     AggregateFunc aggregate = AggregateFunc::NONE;  // Aggregation function (if any)
     std::string aggregate_arg = "";                  // Argument to aggregation (e.g., variable name for COUNT(emp))
     std::string alias = "";                          // AS alias for the field
+    bool is_count_star = false;                      // Special case for COUNT(*)
+
+    // XML attribute support
+    bool is_attribute = false;           // True if this is an XML attribute (@attr)
+    std::string attribute_name;          // Attribute name (when is_attribute = true)
 };
 
 // Logical operators for combining conditions
@@ -127,6 +137,7 @@ struct WhereCondition : public WhereExpr {
     ComparisonOp op;
     std::string value;
     bool is_numeric;
+    std::vector<std::string> values;  // For IN/NOT_IN operators
 };
 
 // Logical combination of conditions (AND/OR)
@@ -145,15 +156,29 @@ struct ForClause {
     bool has_position = false; // True if AT clause is present
 };
 
+// Sort direction for ORDER BY
+enum class SortDirection {
+    ASC,
+    DESC
+};
+
+// ORDER BY field with direction
+struct OrderByField {
+    std::string field_name;
+    SortDirection direction = SortDirection::ASC;
+};
+
 // Main Query AST
 struct Query {
     std::vector<FieldPath> select_fields;     // Fields to select
+    bool distinct = false;                     // DISTINCT flag
     std::string from_path;                     // Directory path
     std::vector<ForClause> for_clauses;        // Optional FOR clauses for iteration context
     std::unique_ptr<WhereExpr> where;          // Optional WHERE clause (can be condition or logical)
-    std::vector<std::string> group_by_fields;  // GROUP BY fields (Phase 3)
-    std::vector<std::string> order_by_fields;  // ORDER BY fields (Phase 2)
-    int limit = -1;                            // LIMIT value (Phase 2, -1 means no limit)
+    std::vector<std::string> group_by_fields;  // GROUP BY fields
+    std::vector<OrderByField> order_by_fields; // ORDER BY fields with direction
+    int limit = -1;                            // LIMIT value (-1 means no limit)
+    int offset = -1;                           // OFFSET value (-1 means no offset)
     bool has_aggregates = false;               // True if SELECT contains aggregation functions
 
     // Helper: Check if identifier is a FOR variable

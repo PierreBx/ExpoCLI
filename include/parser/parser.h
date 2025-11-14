@@ -48,6 +48,7 @@ private:
     std::string parseRegexPattern();  // Parse regex pattern between / delimiters
     void parseOrderByClause(Query& query);
     void parseLimitClause(Query& query);
+    void parseOffsetClause(Query& query);
     void parseGroupByClause(Query& query);  // Parse GROUP BY clause
     void markVariableReferencesInWhere(WhereExpr* expr, const Query& query);
 };

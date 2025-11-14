@@ -101,6 +101,9 @@ private:
         size_t threadCount,
         std::atomic<size_t>* completedCounter = nullptr
     );
+
+    // Compute aggregate function value
+    static std::string computeAggregate(const FieldPath& field, const std::vector<ResultRow>& allResults);
 };
 
 } // namespace expocli

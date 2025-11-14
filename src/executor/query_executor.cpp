@@ -9,6 +9,7 @@
 #include <atomic>
 #include <chrono>
 #include <limits>
+#include <set>
 
 namespace expocli {
 
@@ -42,7 +43,98 @@ std::vector<ResultRow> QueryExecutor::execute(const Query& query) {
         return allResults;
     }
 
-    // Process each file
+    // Check if any aggregate functions are used
+    bool hasAggregates = false;
+    for (const auto& field : query.select_fields) {
+        if (field.aggregate != AggregateFunc::NONE) {
+            hasAggregates = true;
+            break;
+        }
+    }
+
+    // Process each file - for aggregates, we need to build a modified query
+    if (hasAggregates) {
+        // For aggregate queries, build a temporary query to extract fields
+        Query tempQuery;
+        tempQuery.from_path = query.from_path;
+        tempQuery.where = nullptr;  // We'll handle WHERE separately for now
+        tempQuery.distinct = false;
+        tempQuery.limit = -1;
+        tempQuery.offset = -1;
+
+        // Convert aggregate fields to regular fields for extraction
+        for (const auto& field : query.select_fields) {
+            if (field.aggregate != AggregateFunc::NONE && !field.is_count_star) {
+                // Extract the underlying field for aggregation
+                FieldPath extractField = field;
+                extractField.aggregate = AggregateFunc::NONE;
+                tempQuery.select_fields.push_back(extractField);
+            }
+        }
+
+        // For COUNT(*) with no other fields, we need at least one field to process
+        // We'll count based on file loading success
+        bool isOnlyCountStar = tempQuery.select_fields.empty();
+
+        if (!isOnlyCountStar) {
+            // Process files to extract field values
+            for (const auto& filepath : xmlFiles) {
+                try {
+                    auto fileResults = processFile(filepath, tempQuery);
+                    allResults.insert(allResults.end(), fileResults.begin(), fileResults.end());
+                } catch (const std::exception& e) {
+                    std::cerr << "Error processing file " << filepath << ": " << e.what() << std::endl;
+                }
+            }
+        } else {
+            // For COUNT(*) only, count files as rows
+            // For now, without WHERE clause support in pure COUNT(*), just count files
+            for (const auto& filepath : xmlFiles) {
+                try {
+                    auto doc = XmlLoader::load(filepath);
+                    // Each successfully loaded file counts as a row for COUNT(*)
+                    allResults.push_back(ResultRow());
+                } catch (const std::exception& e) {
+                    std::cerr << "Error processing file " << filepath << ": " << e.what() << std::endl;
+                }
+            }
+        }
+
+        // Now compute aggregates
+        ResultRow aggregateRow;
+        for (const auto& field : query.select_fields) {
+            std::string fieldName;
+            if (field.is_count_star) {
+                fieldName = "COUNT(*)";
+            } else {
+                std::string path;
+                if (field.is_attribute) {
+                    path = "@" + field.attribute_name;
+                } else {
+                    for (size_t i = 0; i < field.components.size(); ++i) {
+                        if (i > 0) path += ".";
+                        path += field.components[i];
+                    }
+                }
+
+                switch (field.aggregate) {
+                    case AggregateFunc::COUNT: fieldName = "COUNT(" + path + ")"; break;
+                    case AggregateFunc::SUM:   fieldName = "SUM(" + path + ")"; break;
+                    case AggregateFunc::AVG:   fieldName = "AVG(" + path + ")"; break;
+                    case AggregateFunc::MIN:   fieldName = "MIN(" + path + ")"; break;
+                    case AggregateFunc::MAX:   fieldName = "MAX(" + path + ")"; break;
+                    default: break;
+                }
+            }
+
+            std::string aggregateValue = computeAggregate(field, allResults);
+            aggregateRow.push_back({fieldName, aggregateValue});
+        }
+
+        return {aggregateRow};
+    }
+
+    // Non-aggregate query - process normally
     for (const auto& filepath : xmlFiles) {
         try {
             auto fileResults = processFile(filepath, query);
@@ -54,10 +146,12 @@ std::vector<ResultRow> QueryExecutor::execute(const Query& query) {
 
     // Apply ORDER BY if specified
     if (!query.order_by_fields.empty()) {
-        const std::string& orderField = query.order_by_fields[0]; // For Phase 2, support first field only
+        const OrderByField& orderByField = query.order_by_fields[0]; // For now, support first field only
+        const std::string& orderField = orderByField.field_name;
+        bool descending = (orderByField.direction == SortDirection::DESC);
 
         std::sort(allResults.begin(), allResults.end(),
-            [&orderField](const ResultRow& a, const ResultRow& b) {
+            [&orderField, descending](const ResultRow& a, const ResultRow& b) {
                 // Find the field in both rows
                 std::string aValue, bValue;
 
@@ -79,16 +173,48 @@ std::vector<ResultRow> QueryExecutor::execute(const Query& query) {
                 try {
                     double aNum = std::stod(aValue);
                     double bNum = std::stod(bValue);
-                    return aNum < bNum;
+                    // For descending, we want larger values first (a > b means a before b)
+                    // For ascending, we want smaller values first (a < b means a before b)
+                    return descending ? (aNum > bNum) : (aNum < bNum);
                 } catch (...) {
                     // Fall back to string comparison
-                    return aValue < bValue;
+                    return descending ? (aValue > bValue) : (aValue < bValue);
                 }
             }
         );
     }
 
-    // Apply LIMIT if specified
+    // Apply DISTINCT if specified (remove duplicate rows)
+    if (query.distinct) {
+        std::vector<ResultRow> uniqueResults;
+        std::set<std::string> seen;  // Store serialized rows for comparison
+
+        for (const auto& row : allResults) {
+            // Serialize the row for comparison
+            std::string rowKey;
+            for (const auto& [field, value] : row) {
+                rowKey += field + ":" + value + "|";
+            }
+
+            // Only add if we haven't seen this row before
+            if (seen.find(rowKey) == seen.end()) {
+                seen.insert(rowKey);
+                uniqueResults.push_back(row);
+            }
+        }
+
+        allResults = std::move(uniqueResults);
+    }
+
+    // Apply OFFSET if specified (skip first N results)
+    if (query.offset >= 0 && static_cast<size_t>(query.offset) < allResults.size()) {
+        allResults.erase(allResults.begin(), allResults.begin() + query.offset);
+    } else if (query.offset >= 0 && static_cast<size_t>(query.offset) >= allResults.size()) {
+        // Offset is beyond the result set, return empty
+        allResults.clear();
+    }
+
+    // Apply LIMIT if specified (after offset)
     if (query.limit >= 0 && static_cast<size_t>(query.limit) < allResults.size()) {
         allResults.resize(query.limit);
     }
@@ -825,6 +951,8 @@ std::vector<ResultRow> QueryExecutor::processFile(
 
                 if (field.include_filename) {
                     fieldName = "FILE_NAME";
+                } else if (field.is_attribute) {
+                    fieldName = "@" + field.attribute_name;
                 } else {
                     fieldName = field.components.back();
                 }
@@ -870,21 +998,34 @@ std::vector<ResultRow> QueryExecutor::processFile(
                         // For IS NULL/IS NOT NULL, evaluate on nodes that have at least one SELECT field
                         // This ensures we're checking the right "level" of nodes
                         if (node.type() == pugi::node_element && node != *doc) {
-                            // Check if this node has at least one of the SELECT fields as a child
+                            // Check if this node has at least one of the SELECT fields as a child or attribute
                             for (const auto& selectField : query.select_fields) {
-                                if (!selectField.include_filename && selectField.components.size() == 1) {
-                                    pugi::xml_node foundNode = XmlNavigator::findFirstElementByName(node, selectField.components[0]);
-                                    if (foundNode && foundNode.parent() == node) {
+                                if (!selectField.include_filename) {
+                                    if (selectField.is_attribute) {
+                                        // For attributes, just check if this is an element node
                                         shouldEvaluate = true;
                                         break;
+                                    } else if (selectField.components.size() == 1) {
+                                        pugi::xml_node foundNode = XmlNavigator::findFirstElementByName(node, selectField.components[0]);
+                                        if (foundNode && foundNode.parent() == node) {
+                                            shouldEvaluate = true;
+                                            break;
+                                        }
                                     }
                                 }
                             }
                         }
                     } else {
-                        // Check if this node has the WHERE attribute as a direct child
-                        pugi::xml_node whereAttrNode = XmlNavigator::findFirstElementByName(node, whereField.components[0]);
-                        shouldEvaluate = (whereAttrNode && whereAttrNode.parent() == node);
+                        // Check if this node has the WHERE field
+                        if (whereField.is_attribute) {
+                            // For attributes, check if this node is an element node
+                            // The actual attribute value will be checked in evaluateWhereExpr
+                            shouldEvaluate = (node.type() == pugi::node_element && node != *doc);
+                        } else if (!whereField.components.empty()) {
+                            // Check if this node has the WHERE field as a direct child
+                            pugi::xml_node whereAttrNode = XmlNavigator::findFirstElementByName(node, whereField.components[0]);
+                            shouldEvaluate = (whereAttrNode && whereAttrNode.parent() == node);
+                        }
                     }
 
                     if (shouldEvaluate) {
@@ -899,6 +1040,13 @@ std::vector<ResultRow> QueryExecutor::processFile(
                                 if (field.include_filename) {
                                     fieldName = "FILE_NAME";
                                     value = filename;
+                                } else if (field.is_attribute) {
+                                    fieldName = "@" + field.attribute_name;
+                                    // Extract attribute from current node
+                                    pugi::xml_attribute attr = node.attribute(field.attribute_name.c_str());
+                                    if (attr) {
+                                        value = attr.value();
+                                    }
                                 } else {
                                     fieldName = field.components.back();
 
@@ -960,6 +1108,13 @@ std::vector<ResultRow> QueryExecutor::processFile(
                     if (field.include_filename) {
                         fieldName = "FILE_NAME";
                         value = filename;
+                    } else if (field.is_attribute) {
+                        fieldName = "@" + field.attribute_name;
+                        // Extract attribute from current node
+                        pugi::xml_attribute attr = node.attribute(field.attribute_name.c_str());
+                        if (attr) {
+                            value = attr.value();
+                        }
                     } else {
                         fieldName = field.components.back();
 
@@ -1215,10 +1370,12 @@ std::vector<ResultRow> QueryExecutor::executeWithProgress(
 
     // Apply ORDER BY if specified
     if (!query.order_by_fields.empty()) {
-        const std::string& orderField = query.order_by_fields[0];
+        const auto& orderByField = query.order_by_fields[0];
+        const std::string& orderField = orderByField.field_name;
+        bool ascending = (orderByField.direction == SortDirection::ASC);
 
         std::sort(allResults.begin(), allResults.end(),
-            [&orderField](const ResultRow& a, const ResultRow& b) {
+            [&orderField, ascending](const ResultRow& a, const ResultRow& b) {
                 std::string aValue, bValue;
 
                 for (const auto& [field, value] : a) {
@@ -1236,13 +1393,16 @@ std::vector<ResultRow> QueryExecutor::executeWithProgress(
                 }
 
                 // Try numeric comparison first
+                bool result;
                 try {
                     double aNum = std::stod(aValue);
                     double bNum = std::stod(bValue);
-                    return aNum < bNum;
+                    result = aNum < bNum;
                 } catch (...) {
-                    return aValue < bValue;
+                    result = aValue < bValue;
                 }
+
+                return ascending ? result : !result;
             }
         );
     }
@@ -1260,6 +1420,87 @@ std::vector<ResultRow> QueryExecutor::executeWithProgress(
     }
 
     return allResults;
+}
+
+std::string QueryExecutor::computeAggregate(const FieldPath& field, const std::vector<ResultRow>& allResults) {
+    if (field.is_count_star) {
+        // COUNT(*) - count all rows
+        return std::to_string(allResults.size());
+    }
+
+    // Build the field name we're looking for
+    std::string targetField;
+    if (field.is_attribute) {
+        targetField = "@" + field.attribute_name;
+    } else {
+        targetField = field.components.back();
+    }
+
+    // Collect all values for this field
+    std::vector<double> numericValues;
+    size_t count = 0;
+
+    for (const auto& row : allResults) {
+        for (const auto& [fieldName, fieldValue] : row) {
+            if (fieldName == targetField && !fieldValue.empty()) {
+                try {
+                    double numValue = std::stod(fieldValue);
+                    numericValues.push_back(numValue);
+                    count++;
+                } catch (...) {
+                    // Not a number, skip for SUM/AVG/MIN/MAX but count for COUNT
+                    if (field.aggregate == AggregateFunc::COUNT) {
+                        count++;
+                    }
+                }
+                break; // Found the field in this row
+            }
+        }
+    }
+
+    switch (field.aggregate) {
+        case AggregateFunc::COUNT:
+            return std::to_string(count);
+
+        case AggregateFunc::SUM: {
+            if (numericValues.empty()) return "0";
+            double sum = 0;
+            for (double v : numericValues) {
+                sum += v;
+            }
+            return std::to_string(sum);
+        }
+
+        case AggregateFunc::AVG: {
+            if (numericValues.empty()) return "0";
+            double sum = 0;
+            for (double v : numericValues) {
+                sum += v;
+            }
+            return std::to_string(sum / numericValues.size());
+        }
+
+        case AggregateFunc::MIN: {
+            if (numericValues.empty()) return "";
+            double minVal = numericValues[0];
+            for (double v : numericValues) {
+                if (v < minVal) minVal = v;
+            }
+            return std::to_string(minVal);
+        }
+
+        case AggregateFunc::MAX: {
+            if (numericValues.empty()) return "";
+            double maxVal = numericValues[0];
+            for (double v : numericValues) {
+                if (v > maxVal) maxVal = v;
+            }
+            return std::to_string(maxVal);
+        }
+
+        default:
+            return "";
+    }
 }
 
 } // namespace expocli
