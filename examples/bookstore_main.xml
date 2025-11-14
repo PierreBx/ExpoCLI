@@ -1,0 +1,250 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bookstore name="Downtown Books" location="New York">
+  <book isbn="978-0-553-29698-2" edition="1" language="en" format="paperback">
+    <title lang="en">The Catcher in the Rye</title>
+    <author>J.D. Salinger</author>
+    <publisher>Little, Brown and Company</publisher>
+    <publication_date>1951-07-16</publication_date>
+    <category>fiction</category>
+    <price>14.99</price>
+    <stock>25</stock>
+    <rating>4.2</rating>
+    <description>A classic American novel about teenage rebellion and alienation</description>
+  </book>
+
+  <book isbn="978-0-061-12008-4" edition="2" language="en" format="paperback">
+    <title lang="en">To Kill a Mockingbird</title>
+    <author>Harper Lee</author>
+    <publisher>Harper Perennial</publisher>
+    <publication_date>1960-07-11</publication_date>
+    <category>fiction</category>
+    <price>18.99</price>
+    <stock>42</stock>
+    <rating>4.8</rating>
+    <description>A gripping tale of racial injustice and childhood innocence</description>
+    <discount>2.00</discount>
+    <review>A masterpiece of American literature</review>
+  </book>
+
+  <book isbn="978-0-451-52493-5" edition="1" language="en" format="paperback">
+    <title lang="en">1984</title>
+    <author>George Orwell</author>
+    <publisher>Signet Classic</publisher>
+    <publication_date>1949-06-08</publication_date>
+    <category>science-fiction</category>
+    <price>15.99</price>
+    <stock>18</stock>
+    <rating>4.6</rating>
+    <description>A dystopian social science fiction novel and cautionary tale</description>
+  </book>
+
+  <book isbn="978-0-7432-7356-5" edition="1" language="en" format="hardcover">
+    <title lang="en">The Great Gatsby</title>
+    <author>F. Scott Fitzgerald</author>
+    <publisher>Scribner</publisher>
+    <publication_date>1925-04-10</publication_date>
+    <category>fiction</category>
+    <price>24.99</price>
+    <stock>8</stock>
+    <rating>4.4</rating>
+    <description>The story of the mysteriously wealthy Jay Gatsby and his love for Daisy Buchanan</description>
+    <discount>5.00</discount>
+  </book>
+
+  <book isbn="978-0-439-02348-1" edition="1" language="en" format="hardcover">
+    <title lang="en">Harry Potter and the Sorcerer's Stone</title>
+    <author>J.K. Rowling</author>
+    <publisher>Scholastic</publisher>
+    <publication_date>1998-09-01</publication_date>
+    <category>fantasy</category>
+    <price>29.99</price>
+    <stock>55</stock>
+    <rating>4.9</rating>
+    <description>The first book in the magical Harry Potter series</description>
+    <review>An enchanting adventure for all ages</review>
+  </book>
+
+  <book isbn="978-0-385-33312-0" edition="1" language="en" format="paperback">
+    <title lang="en">The Da Vinci Code</title>
+    <author>Dan Brown</author>
+    <publisher>Doubleday</publisher>
+    <publication_date>2003-03-18</publication_date>
+    <category>mystery</category>
+    <price>16.99</price>
+    <stock>12</stock>
+    <rating>3.8</rating>
+    <description>A mystery thriller novel that follows symbologist Robert Langdon</description>
+  </book>
+
+  <book isbn="978-0-316-76948-0" edition="3" language="en" format="ebook">
+    <title lang="en">The Giver</title>
+    <author>Lois Lowry</author>
+    <publisher>Houghton Mifflin</publisher>
+    <publication_date>1993-04-26</publication_date>
+    <category>young-adult</category>
+    <price>9.99</price>
+    <stock>100</stock>
+    <rating>4.3</rating>
+    <description>A dystopian novel about a seemingly perfect society</description>
+  </book>
+
+  <book isbn="978-0-142-40023-5" edition="1" language="en" format="paperback">
+    <title lang="en">The Hunger Games</title>
+    <author>Suzanne Collins</author>
+    <publisher>Scholastic Press</publisher>
+    <publication_date>2008-09-14</publication_date>
+    <category>young-adult</category>
+    <price>12.99</price>
+    <stock>31</stock>
+    <rating>4.5</rating>
+    <description>A dystopian novel set in post-apocalyptic North America</description>
+    <discount>1.50</discount>
+  </book>
+
+  <book isbn="978-0-544-27299-6" edition="2" language="en" format="hardcover">
+    <title lang="en">The Hobbit</title>
+    <author>J.R.R. Tolkien</author>
+    <publisher>Houghton Mifflin</publisher>
+    <publication_date>1937-09-21</publication_date>
+    <category>fantasy</category>
+    <price>27.99</price>
+    <stock>22</stock>
+    <rating>4.7</rating>
+    <description>The prelude to The Lord of the Rings trilogy</description>
+    <review>A timeless fantasy adventure</review>
+  </book>
+
+  <book isbn="978-0-345-80728-3" edition="1" language="en" format="paperback">
+    <title lang="en">A Game of Thrones</title>
+    <author>George R.R. Martin</author>
+    <publisher>Bantam Books</publisher>
+    <publication_date>1996-08-06</publication_date>
+    <category>fantasy</category>
+    <price>19.99</price>
+    <stock>14</stock>
+    <rating>4.6</rating>
+    <description>The first book in A Song of Ice and Fire series</description>
+  </book>
+
+  <book isbn="978-0-385-50420-3" edition="1" language="en" format="hardcover">
+    <title lang="en">Sapiens: A Brief History of Humankind</title>
+    <author>Yuval Noah Harari</author>
+    <publisher>Harper</publisher>
+    <publication_date>2015-02-10</publication_date>
+    <category>non-fiction</category>
+    <price>28.99</price>
+    <stock>19</stock>
+    <rating>4.5</rating>
+    <description>An exploration of human history from the Stone Age to the modern age</description>
+    <review>Fascinating and thought-provoking</review>
+  </book>
+
+  <book isbn="978-0-743-27356-8" edition="1" language="en" format="paperback">
+    <title lang="en">Steve Jobs</title>
+    <author>Walter Isaacson</author>
+    <publisher>Simon &amp; Schuster</publisher>
+    <publication_date>2011-10-24</publication_date>
+    <category>biography</category>
+    <price>17.99</price>
+    <stock>27</stock>
+    <rating>4.4</rating>
+    <description>The exclusive biography of Steve Jobs</description>
+  </book>
+
+  <book isbn="978-0-141-03943-1" edition="1" language="en" format="paperback">
+    <title lang="en">A Brief History of Time</title>
+    <author>Stephen Hawking</author>
+    <publisher>Bantam Books</publisher>
+    <publication_date>1988-04-01</publication_date>
+    <category>science</category>
+    <price>16.99</price>
+    <stock>15</stock>
+    <rating>4.2</rating>
+    <description>A landmark volume in science writing</description>
+  </book>
+
+  <book isbn="978-0-393-31985-0" edition="2" language="en" format="hardcover">
+    <title lang="en">The Second World War</title>
+    <author>Winston Churchill</author>
+    <publisher>Mariner Books</publisher>
+    <publication_date>1948-01-01</publication_date>
+    <category>history</category>
+    <price>45.00</price>
+    <stock>5</stock>
+    <rating>4.7</rating>
+    <description>Churchill's six-volume account of World War II</description>
+  </book>
+
+  <book isbn="978-1-449-35573-9" edition="3" language="en" format="paperback">
+    <title lang="en">Learning Python</title>
+    <author>Mark Lutz</author>
+    <publisher>O'Reilly Media</publisher>
+    <publication_date>2013-06-12</publication_date>
+    <category>technology</category>
+    <price>54.99</price>
+    <stock>33</stock>
+    <rating>4.1</rating>
+    <description>A comprehensive introduction to the Python programming language</description>
+  </book>
+
+  <book isbn="978-0-596-51774-7" edition="1" language="en" format="ebook">
+    <title lang="en">JavaScript: The Good Parts</title>
+    <author>Douglas Crockford</author>
+    <publisher>O'Reilly Media</publisher>
+    <publication_date>2008-05-08</publication_date>
+    <category>technology</category>
+    <price>29.99</price>
+    <stock>48</stock>
+    <rating>4.0</rating>
+    <description>A guide to the elegant parts of JavaScript</description>
+  </book>
+
+  <book isbn="978-1-250-06588-5" edition="1" language="en" format="hardcover">
+    <title lang="en">Salt, Fat, Acid, Heat</title>
+    <author>Samin Nosrat</author>
+    <publisher>Simon &amp; Schuster</publisher>
+    <publication_date>2017-04-25</publication_date>
+    <category>cooking</category>
+    <price>35.00</price>
+    <stock>21</stock>
+    <rating>4.8</rating>
+    <description>Mastering the Elements of Good Cooking</description>
+    <review>Revolutionary approach to cooking</review>
+  </book>
+
+  <book isbn="978-0-679-64041-9" edition="1" language="en" format="paperback">
+    <title lang="en">In a Sunburned Country</title>
+    <author>Bill Bryson</author>
+    <publisher>Broadway Books</publisher>
+    <publication_date>2000-06-06</publication_date>
+    <category>travel</category>
+    <price>16.00</price>
+    <stock>11</stock>
+    <rating>4.3</rating>
+    <description>An amusing journey through Australia</description>
+  </book>
+
+  <book isbn="978-0-062-31609-8" edition="1" language="en" format="paperback">
+    <title lang="en">Gone Girl</title>
+    <author>Gillian Flynn</author>
+    <publisher>Crown Publishing</publisher>
+    <publication_date>2012-06-05</publication_date>
+    <category>thriller</category>
+    <price>15.99</price>
+    <stock>0</stock>
+    <rating>4.1</rating>
+    <description>A psychological thriller about a marriage gone terribly wrong</description>
+  </book>
+
+  <book isbn="978-0-375-50167-0" edition="1" language="en" format="hardcover">
+    <title lang="en">The Road</title>
+    <author>Cormac McCarthy</author>
+    <publisher>Knopf</publisher>
+    <publication_date>2006-09-26</publication_date>
+    <category>fiction</category>
+    <price>26.00</price>
+    <stock>9</stock>
+    <rating>4.0</rating>
+    <description>A post-apocalyptic tale of a father and son</description>
+  </book>
+</bookstore>

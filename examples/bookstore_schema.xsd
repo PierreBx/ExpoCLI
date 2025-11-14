@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+  <!-- Root element -->
+  <xs:element name="bookstore">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="book" type="BookType" minOccurs="0" maxOccurs="unbounded"/>
+      </xs:sequence>
+      <xs:attribute name="name" type="xs:string"/>
+      <xs:attribute name="location" type="xs:string"/>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- Book type definition -->
+  <xs:complexType name="BookType">
+    <xs:sequence>
+      <xs:element name="title" type="TitleType"/>
+      <xs:element name="author" type="xs:string" minOccurs="1" maxOccurs="unbounded"/>
+      <xs:element name="publisher" type="xs:string"/>
+      <xs:element name="publication_date" type="xs:date"/>
+      <xs:element name="category" type="CategoryType"/>
+      <xs:element name="price" type="xs:decimal"/>
+      <xs:element name="stock" type="xs:integer"/>
+      <xs:element name="rating" type="RatingType" minOccurs="0"/>
+      <xs:element name="description" type="xs:string" minOccurs="0"/>
+      <xs:element name="discount" type="xs:decimal" minOccurs="0"/>
+      <xs:element name="review" type="xs:string" minOccurs="0"/>
+    </xs:sequence>
+    <xs:attribute name="isbn" type="xs:string" use="required"/>
+    <xs:attribute name="edition" type="xs:integer"/>
+    <xs:attribute name="language" type="xs:string" default="en"/>
+    <xs:attribute name="format" type="FormatType" default="paperback"/>
+  </xs:complexType>
+
+  <!-- Title type with language attribute -->
+  <xs:complexType name="TitleType">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute name="lang" type="xs:string" default="en"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <!-- Category type (restricted values) -->
+  <xs:simpleType name="CategoryType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="fiction"/>
+      <xs:enumeration value="mystery"/>
+      <xs:enumeration value="thriller"/>
+      <xs:enumeration value="science-fiction"/>
+      <xs:enumeration value="fantasy"/>
+      <xs:enumeration value="romance"/>
+      <xs:enumeration value="non-fiction"/>
+      <xs:enumeration value="biography"/>
+      <xs:enumeration value="history"/>
+      <xs:enumeration value="science"/>
+      <xs:enumeration value="technology"/>
+      <xs:enumeration value="cooking"/>
+      <xs:enumeration value="travel"/>
+      <xs:enumeration value="children"/>
+      <xs:enumeration value="young-adult"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Rating type (1.0 to 5.0) -->
+  <xs:simpleType name="RatingType">
+    <xs:restriction base="xs:decimal">
+      <xs:minInclusive value="1.0"/>
+      <xs:maxInclusive value="5.0"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Format type (restricted values) -->
+  <xs:simpleType name="FormatType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="hardcover"/>
+      <xs:enumeration value="paperback"/>
+      <xs:enumeration value="ebook"/>
+      <xs:enumeration value="audiobook"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+</xs:schema>
