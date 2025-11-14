@@ -839,24 +839,77 @@ void QueryExecutor::processNestedForClauses(
                 XmlNavigator::findNodesByPartialPath(parentNode, subPath, iterationNodes);
             }
         } else {
-            // Not a variable reference - search from current context or document root
+            // Not a variable reference - search from document root
+            // Get the document root (the root xml_node, not the document node)
+            pugi::xml_node docRoot = currentContext;
+            while (docRoot.parent() && docRoot.parent().type() != pugi::node_document) {
+                docRoot = docRoot.parent();
+            }
+
             if (forClause.path.components.size() == 1) {
-                // Simple path: find all matching elements
+                // Single component path
                 std::string elementName = forClause.path.components[0];
-                std::function<void(const pugi::xml_node&)> findElements =
-                    [&](const pugi::xml_node& node) {
-                        if (node.type() == pugi::node_element && node.name() == elementName) {
-                            iterationNodes.push_back(node);
-                        }
-                        for (pugi::xml_node child : node.children()) {
-                            findElements(child);
-                        }
-                    };
-                findElements(currentContext.parent() ? currentContext.root() : currentContext);
+
+                if (!forClause.path.is_partial_path) {
+                    // No leading dot: match ONLY at document root
+                    if (docRoot && std::string(docRoot.name()) == elementName) {
+                        iterationNodes.push_back(docRoot);
+                    }
+                } else {
+                    // Leading dot: partial path - recursive search
+                    std::function<void(const pugi::xml_node&)> findElements =
+                        [&](const pugi::xml_node& node) {
+                            if (node.type() == pugi::node_element && node.name() == elementName) {
+                                iterationNodes.push_back(node);
+                            }
+                            for (pugi::xml_node child : node.children()) {
+                                findElements(child);
+                            }
+                        };
+                    findElements(docRoot);
+                }
             } else {
                 // Multi-component path
-                pugi::xml_node searchRoot = currentContext.parent() ? currentContext.root() : currentContext;
-                XmlNavigator::findNodesByPartialPath(searchRoot, forClause.path.components, iterationNodes);
+                // For partial paths (.department.employee), use suffix matching
+                // For non-partial paths (company.department.employee), use full path matching
+                XmlNavigator::findNodesByPartialPath(docRoot, forClause.path.components, iterationNodes);
+
+                // If not a partial path, filter to only exact full path matches
+                if (!forClause.path.is_partial_path) {
+                    // Build expected full path
+                    std::string expectedPath;
+                    for (size_t i = 0; i < forClause.path.components.size(); ++i) {
+                        if (i > 0) expectedPath += ".";
+                        expectedPath += forClause.path.components[i];
+                    }
+
+                    // Filter nodes to only those matching the exact full path from root
+                    std::vector<pugi::xml_node> filteredNodes;
+                    for (const auto& node : iterationNodes) {
+                        // Build actual full path of this node
+                        std::vector<std::string> nodePath;
+                        pugi::xml_node n = node;
+                        while (n && n.type() == pugi::node_element) {
+                            nodePath.insert(nodePath.begin(), std::string(n.name()));
+                            n = n.parent();
+                        }
+
+                        // Check if it matches the expected path exactly
+                        if (nodePath.size() >= forClause.path.components.size()) {
+                            bool matches = true;
+                            for (size_t i = 0; i < forClause.path.components.size(); ++i) {
+                                if (nodePath[i] != forClause.path.components[i]) {
+                                    matches = false;
+                                    break;
+                                }
+                            }
+                            if (matches) {
+                                filteredNodes.push_back(node);
+                            }
+                        }
+                    }
+                    iterationNodes = filteredNodes;
+                }
             }
         }
     }
