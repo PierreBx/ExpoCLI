@@ -176,6 +176,7 @@ struct Query {
     std::vector<ForClause> for_clauses;        // Optional FOR clauses for iteration context
     std::unique_ptr<WhereExpr> where;          // Optional WHERE clause (can be condition or logical)
     std::vector<std::string> group_by_fields;  // GROUP BY fields
+    std::unique_ptr<WhereExpr> having;         // Optional HAVING clause (filters aggregated results)
     std::vector<OrderByField> order_by_fields; // ORDER BY fields with direction
     int limit = -1;                            // LIMIT value (-1 means no limit)
     int offset = -1;                           // OFFSET value (-1 means no offset)

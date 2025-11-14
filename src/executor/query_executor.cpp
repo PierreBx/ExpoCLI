@@ -144,6 +144,29 @@ std::vector<ResultRow> QueryExecutor::execute(const Query& query) {
         }
     }
 
+    // Apply DISTINCT if specified
+    if (query.distinct && !allResults.empty()) {
+        std::vector<ResultRow> uniqueResults;
+        std::set<std::string> seen;
+
+        for (const auto& row : allResults) {
+            // Build a unique key from all field values in the row
+            std::string rowKey;
+            for (const auto& [field, value] : row) {
+                if (!rowKey.empty()) rowKey += "|||";
+                rowKey += value;
+            }
+
+            // Only add if we haven't seen this combination before
+            if (seen.find(rowKey) == seen.end()) {
+                seen.insert(rowKey);
+                uniqueResults.push_back(row);
+            }
+        }
+
+        allResults = std::move(uniqueResults);
+    }
+
     // Apply ORDER BY if specified
     if (!query.order_by_fields.empty()) {
         const OrderByField& orderByField = query.order_by_fields[0]; // For now, support first field only
@@ -247,6 +270,9 @@ std::vector<std::string> QueryExecutor::getXmlFiles(const std::string& path) {
 
     return xmlFiles;
 }
+
+// Forward declaration of HAVING evaluation helper
+static bool evaluateHavingCondition(const ResultRow& row, const WhereExpr* expr);
 
 // Process a single file with FOR clause context binding
 std::vector<ResultRow> QueryExecutor::processFileWithForClauses(
@@ -366,7 +392,10 @@ std::vector<ResultRow> QueryExecutor::processFileWithForClauses(
                 }
             }
 
-            aggregatedResults.push_back(aggregatedRow);
+            // Apply HAVING filter if present (for global aggregation)
+            if (!query.having || evaluateHavingCondition(aggregatedRow, query.having.get())) {
+                aggregatedResults.push_back(aggregatedRow);
+            }
             return aggregatedResults;
         } else {
             // Handle GROUP BY aggregations
@@ -493,7 +522,10 @@ std::vector<ResultRow> QueryExecutor::processFileWithForClauses(
                     }
                 }
 
-                aggregatedResults.push_back(aggregatedRow);
+                // Apply HAVING filter if present
+                if (!query.having || evaluateHavingCondition(aggregatedRow, query.having.get())) {
+                    aggregatedResults.push_back(aggregatedRow);
+                }
             }
 
             return aggregatedResults;
@@ -501,6 +533,96 @@ std::vector<ResultRow> QueryExecutor::processFileWithForClauses(
     }
 
     return results;
+}
+
+// Helper function to evaluate HAVING condition on an aggregated result row
+static bool evaluateHavingCondition(const ResultRow& row, const WhereExpr* expr) {
+    if (!expr) return true;
+
+    // Simple condition
+    if (const auto* condition = dynamic_cast<const WhereCondition*>(expr)) {
+        // Find the field value in the aggregated row
+        // The field name could be:
+        // - An alias (e.g., "avg_sal")
+        // - A GROUP BY field (e.g., "dept.name")
+        // - An aggregation function (e.g., "COUNT(emp)")
+
+        std::string fieldToFind;
+        if (!condition->field.components.empty()) {
+            // Build the field name from components
+            fieldToFind = condition->field.components[0];
+            for (size_t i = 1; i < condition->field.components.size(); ++i) {
+                fieldToFind += "." + condition->field.components[i];
+            }
+        }
+
+        // Search for matching field in the row
+        std::string fieldValue;
+        bool found = false;
+        for (const auto& [name, val] : row) {
+            // Match by exact name or if name contains the field
+            if (name == fieldToFind || name.find(fieldToFind) != std::string::npos) {
+                fieldValue = val;
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
+            return false; // Field not found in aggregated row
+        }
+
+        // Evaluate the condition
+        switch (condition->op) {
+            case ComparisonOp::EQUALS:
+                return fieldValue == condition->value;
+            case ComparisonOp::NOT_EQUALS:
+                return fieldValue != condition->value;
+            case ComparisonOp::LESS_THAN:
+                try {
+                    return std::stod(fieldValue) < std::stod(condition->value);
+                } catch (...) {
+                    return fieldValue < condition->value;
+                }
+            case ComparisonOp::GREATER_THAN:
+                try {
+                    return std::stod(fieldValue) > std::stod(condition->value);
+                } catch (...) {
+                    return fieldValue > condition->value;
+                }
+            case ComparisonOp::LESS_EQUAL:
+                try {
+                    return std::stod(fieldValue) <= std::stod(condition->value);
+                } catch (...) {
+                    return fieldValue <= condition->value;
+                }
+            case ComparisonOp::GREATER_EQUAL:
+                try {
+                    return std::stod(fieldValue) >= std::stod(condition->value);
+                } catch (...) {
+                    return fieldValue >= condition->value;
+                }
+            case ComparisonOp::IS_NULL:
+                return fieldValue.empty();
+            case ComparisonOp::IS_NOT_NULL:
+                return !fieldValue.empty();
+            default:
+                return false;
+        }
+    }
+    // Logical expression (AND/OR)
+    else if (const auto* logical = dynamic_cast<const WhereLogical*>(expr)) {
+        bool leftResult = evaluateHavingCondition(row, logical->left.get());
+        bool rightResult = evaluateHavingCondition(row, logical->right.get());
+
+        if (logical->op == LogicalOp::AND) {
+            return leftResult && rightResult;
+        } else if (logical->op == LogicalOp::OR) {
+            return leftResult || rightResult;
+        }
+    }
+
+    return false;
 }
 
 // Recursive function to handle nested FOR clauses
