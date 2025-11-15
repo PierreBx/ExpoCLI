@@ -29,7 +29,48 @@ The ExpoCLI Jupyter kernel allows you to execute ExpoCLI queries in Jupyter note
 
 ## Installation
 
-### Prerequisites
+### Option 1: Docker Installation (Recommended)
+
+The easiest way to get started is using Docker, which includes everything pre-configured.
+
+**1. Build and start the Jupyter service:**
+
+```bash
+# Build the Docker image (includes ExpoCLI, Jupyter, and the kernel)
+docker compose build
+
+# Start the Jupyter service
+docker compose up -d jupyter
+```
+
+**2. Access Jupyter Lab:**
+
+Open your browser and navigate to:
+```
+http://localhost:8888
+```
+
+**3. Try the demo notebook:**
+
+Navigate to `examples/ExpoCLI_Demo.ipynb` in the Jupyter Lab interface.
+
+**4. Stop Jupyter when done:**
+
+```bash
+docker compose down
+```
+
+**Benefits of Docker approach:**
+- ✅ No local Python/Jupyter installation required
+- ✅ Consistent environment across all platforms
+- ✅ Everything pre-configured and ready to use
+- ✅ Isolated from your host system
+
+### Option 2: Host Installation
+
+If you prefer to run Jupyter on your host system:
+
+#### Prerequisites
 
 1. **ExpoCLI CLI** - Must be installed first
    ```bash
@@ -47,7 +88,7 @@ The ExpoCLI Jupyter kernel allows you to execute ExpoCLI queries in Jupyter note
    pip3 install jupyter jupyterlab
    ```
 
-### Install the Kernel
+#### Install the Kernel
 
 From the ExpoCLI repository root:
 
@@ -61,7 +102,7 @@ jupyter kernelspec list
 
 You should see `expocli` in the list of available kernels.
 
-### Manual Installation (Alternative)
+#### Manual Installation (Alternative)
 
 If the script doesn't work, you can install manually:
 
@@ -78,7 +119,22 @@ python3 -m expocli_kernel.install
 
 ## Quick Start
 
-### 1. Start Jupyter
+### Docker Quick Start (Recommended)
+
+```bash
+# 1. Start Jupyter Lab in Docker
+docker compose up -d jupyter
+
+# 2. Open browser to http://localhost:8888
+
+# 3. Open examples/ExpoCLI_Demo.ipynb and run the cells
+```
+
+That's it! Everything is pre-configured.
+
+### Host Installation Quick Start
+
+**1. Start Jupyter**
 
 ```bash
 # Option 1: Jupyter Notebook (classic interface)
@@ -88,12 +144,12 @@ jupyter notebook
 jupyter lab
 ```
 
-### 2. Create a New Notebook
+**2. Create a New Notebook**
 
 - Click "New" → "ExpoCLI" (in Jupyter Notebook)
 - Or select "ExpoCLI" kernel when creating a new notebook (in JupyterLab)
 
-### 3. Run Your First Query
+**3. Run Your First Query**
 
 In a cell, type:
 
@@ -103,7 +159,7 @@ SELECT * FROM examples/test.xml
 
 Press `Shift+Enter` to execute.
 
-### 4. Try the Demo Notebook
+**4. Try the Demo Notebook**
 
 Open `examples/ExpoCLI_Demo.ipynb` for a comprehensive tutorial with example queries.
 

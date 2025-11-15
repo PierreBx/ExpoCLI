@@ -180,9 +180,18 @@ ExpoCLI now supports running queries in Jupyter notebooks for interactive data e
 - 🔄 Reproducible workflows saved as `.ipynb` files
 - 🎓 Perfect for tutorials and data exploration
 
-**Quick Start:**
+**Quick Start with Docker (Recommended):**
 ```bash
-# Install the Jupyter kernel
+# Start Jupyter Lab with everything pre-configured
+docker compose up -d jupyter
+
+# Open browser to http://localhost:8888
+# Navigate to examples/ExpoCLI_Demo.ipynb
+```
+
+**Alternative - Host Installation:**
+```bash
+# Install the Jupyter kernel on your host
 ./install_kernel.sh
 
 # Start Jupyter

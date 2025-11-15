@@ -17,5 +17,24 @@ services:
     command: tail -f /dev/null
     restart: unless-stopped
 
+  jupyter:
+    image: expocli_image
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: expocli_jupyter
+    volumes:
+      - .:/app
+      - build-cache:/app/build
+      # Mount user's home directory to access files from anywhere
+      - ${HOME}:/host_home
+    working_dir: /app
+    ports:
+      - "8888:8888"
+    environment:
+      - JUPYTER_ENABLE_LAB=yes
+    command: /app/start-jupyter.sh
+    restart: unless-stopped
+
 volumes:
   build-cache:
