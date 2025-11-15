@@ -170,6 +170,29 @@ Execute a single query from the command line:
 ./expocli "SELECT name FROM /path/to/files WHERE price < 30"
 ```
 
+### Jupyter Notebook Interface (NEW!)
+
+ExpoCLI now supports running queries in Jupyter notebooks for interactive data exploration and analysis.
+
+**Key Benefits:**
+- 📊 Cell-based execution with persistent results
+- 📝 Mix queries with documentation and visualizations
+- 🔄 Reproducible workflows saved as `.ipynb` files
+- 🎓 Perfect for tutorials and data exploration
+
+**Quick Start:**
+```bash
+# Install the Jupyter kernel
+./install_kernel.sh
+
+# Start Jupyter
+jupyter notebook
+
+# Open the demo: examples/ExpoCLI_Demo.ipynb
+```
+
+See [JUPYTER_KERNEL.md](JUPYTER_KERNEL.md) for full documentation and examples.
+
 ## Query Syntax
 
 ### Basic Structure
