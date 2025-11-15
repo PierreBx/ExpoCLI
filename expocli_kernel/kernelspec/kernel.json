@@ -1,0 +1,13 @@
+{
+  "argv": [
+    "python3",
+    "-m",
+    "expocli_kernel",
+    "-f",
+    "{connection_file}"
+  ],
+  "display_name": "ExpoCLI",
+  "language": "expocli-sql",
+  "interrupt_mode": "signal",
+  "env": {}
+}

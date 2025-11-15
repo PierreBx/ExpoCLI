@@ -1,0 +1,6 @@
+# Python dependencies for ExpoCLI Jupyter Kernel
+# Install with: pip install -r requirements-kernel.txt
+
+ipykernel>=6.0.0
+jupyter-client>=7.0.0
+jupyter>=1.0.0
