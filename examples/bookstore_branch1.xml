@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bookstore name="Westside Books" location="Los Angeles">
+  <book isbn="978-0-316-01792-2" edition="1" language="en" format="paperback">
+    <title lang="en">Twilight</title>
+    <author>Stephenie Meyer</author>
+    <publisher>Little, Brown</publisher>
+    <publication_date>2005-10-05</publication_date>
+    <category>romance</category>
+    <price>12.99</price>
+    <stock>38</stock>
+    <rating>3.6</rating>
+    <description>A vampire romance novel</description>
+  </book>
+
+  <book isbn="978-0-345-41943-5" edition="1" language="en" format="hardcover">
+    <title lang="en">The Shining</title>
+    <author>Stephen King</author>
+    <publisher>Doubleday</publisher>
+    <publication_date>1977-01-28</publication_date>
+    <category>thriller</category>
+    <price>28.99</price>
+    <stock>16</stock>
+    <rating>4.3</rating>
+    <description>A horror novel about an isolated hotel</description>
+    <review>Terrifyingly brilliant</review>
+  </book>
+
+  <book isbn="978-0-316-76953-4" edition="2" language="en" format="paperback">
+    <title lang="en">Little Women</title>
+    <author>Louisa May Alcott</author>
+    <publisher>Roberts Brothers</publisher>
+    <publication_date>1868-09-30</publication_date>
+    <category>fiction</category>
+    <price>13.99</price>
+    <stock>29</stock>
+    <rating>4.1</rating>
+    <description>The story of four sisters growing up during the American Civil War</description>
+  </book>
+
+  <book isbn="978-0-316-34611-6" edition="1" language="en" format="ebook">
+    <title lang="en">The Martian</title>
+    <author>Andy Weir</author>
+    <publisher>Crown Publishing</publisher>
+    <publication_date>2014-02-11</publication_date>
+    <category>science-fiction</category>
+    <price>11.99</price>
+    <stock>67</stock>
+    <rating>4.7</rating>
+    <description>An astronaut struggles to survive on Mars</description>
+    <discount>2.00</discount>
+  </book>
+
+  <book isbn="978-0-14-303943-3" edition="1" language="en" format="paperback">
+    <title lang="en">The Alchemist</title>
+    <author>Paulo Coelho</author>
+    <publisher>HarperOne</publisher>
+    <publication_date>1988-01-01</publication_date>
+    <category>fiction</category>
+    <price>14.99</price>
+    <stock>44</stock>
+    <rating>3.9</rating>
+    <description>A philosophical book about following your dreams</description>
+  </book>
+
+  <book isbn="978-0-525-55842-7" edition="1" language="en" format="hardcover">
+    <title lang="en">Educated</title>
+    <author>Tara Westover</author>
+    <publisher>Random House</publisher>
+    <publication_date>2018-02-20</publication_date>
+    <category>biography</category>
+    <price>28.00</price>
+    <stock>23</stock>
+    <rating>4.6</rating>
+    <description>A memoir about education and family</description>
+    <review>Powerful and inspiring</review>
+  </book>
+
+  <book isbn="978-1-59184-283-8" edition="1" language="en" format="hardcover">
+    <title lang="en">The Immortal Life of Henrietta Lacks</title>
+    <author>Rebecca Skloot</author>
+    <publisher>Crown Publishing</publisher>
+    <publication_date>2010-02-02</publication_date>
+    <category>non-fiction</category>
+    <price>26.00</price>
+    <stock>17</stock>
+    <rating>4.5</rating>
+    <description>The story of HeLa cells and the woman behind them</description>
+  </book>
+
+  <book isbn="978-0-06-112241-5" edition="1" language="en" format="paperback">
+    <title lang="en">Where the Crawdads Sing</title>
+    <author>Delia Owens</author>
+    <publisher>G.P. Putnam's Sons</publisher>
+    <publication_date>2018-08-14</publication_date>
+    <category>mystery</category>
+    <price>16.99</price>
+    <stock>52</stock>
+    <rating>4.4</rating>
+    <description>A mystery and coming-of-age story set in the marshes of North Carolina</description>
+  </book>
+
+  <book isbn="978-0-06-293752-7" edition="1" language="en" format="audiobook">
+    <title lang="en">Atomic Habits</title>
+    <author>James Clear</author>
+    <publisher>Avery</publisher>
+    <publication_date>2018-10-16</publication_date>
+    <category>non-fiction</category>
+    <price>19.99</price>
+    <stock>89</stock>
+    <rating>4.8</rating>
+    <description>An Easy and Proven Way to Build Good Habits</description>
+    <review>Life-changing book</review>
+  </book>
+
+  <book isbn="978-0-307-38870-5" edition="1" language="en" format="paperback">
+    <title lang="en">Quiet: The Power of Introverts</title>
+    <author>Susan Cain</author>
+    <publisher>Crown Publishing</publisher>
+    <publication_date>2012-01-24</publication_date>
+    <category>non-fiction</category>
+    <price>17.00</price>
+    <stock>25</stock>
+    <rating>4.2</rating>
+    <description>A book about the power of introverts in a world that can't stop talking</description>
+  </book>
+
+  <book isbn="978-0-14-026969-0" edition="1" language="en" format="paperback">
+    <title lang="en">Pride and Prejudice</title>
+    <author>Jane Austen</author>
+    <publisher>Penguin Classics</publisher>
+    <publication_date>1813-01-28</publication_date>
+    <category>romance</category>
+    <price>11.99</price>
+    <stock>36</stock>
+    <rating>4.5</rating>
+    <description>A romantic novel of manners</description>
+  </book>
+
+  <book isbn="978-0-7624-5615-5" edition="1" language="en" format="hardcover">
+    <title lang="en">The Food Lab</title>
+    <author>J. Kenji López-Alt</author>
+    <publisher>W. W. Norton</publisher>
+    <publication_date>2015-09-21</publication_date>
+    <category>cooking</category>
+    <price>49.99</price>
+    <stock>13</stock>
+    <rating>4.9</rating>
+    <description>Better Home Cooking Through Science</description>
+    <discount>10.00</discount>
+  </book>
+</bookstore>

@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bookstore name="Central Library Books" location="Chicago">
+  <book isbn="978-0-06-112979-7" edition="1" language="en" format="hardcover">
+    <title lang="en">The Handmaid's Tale</title>
+    <author>Margaret Atwood</author>
+    <publisher>McClelland and Stewart</publisher>
+    <publication_date>1985-08-17</publication_date>
+    <category>science-fiction</category>
+    <price>25.99</price>
+    <stock>19</stock>
+    <rating>4.1</rating>
+    <description>A dystopian novel set in a totalitarian society</description>
+  </book>
+
+  <book isbn="978-0-618-64615-7" edition="1" language="en" format="paperback">
+    <title lang="en">Life of Pi</title>
+    <author>Yann Martel</author>
+    <publisher>Harcourt</publisher>
+    <publication_date>2001-09-11</publication_date>
+    <category>fiction</category>
+    <price>15.99</price>
+    <stock>28</stock>
+    <rating>3.8</rating>
+    <description>The story of a boy stranded on a lifeboat with a Bengal tiger</description>
+    <review>Imaginative and philosophical</review>
+  </book>
+
+  <book isbn="978-0-7475-3269-9" edition="1" language="en" format="hardcover">
+    <title lang="en">The Girl with the Dragon Tattoo</title>
+    <author>Stieg Larsson</author>
+    <publisher>Norstedts Förlag</publisher>
+    <publication_date>2005-08-01</publication_date>
+    <category>mystery</category>
+    <price>27.99</price>
+    <stock>14</stock>
+    <rating>4.2</rating>
+    <description>A crime thriller combining murder mystery and family saga</description>
+  </book>
+
+  <book isbn="978-0-06-231500-7" edition="1" language="en" format="ebook">
+    <title lang="en">The Fault in Our Stars</title>
+    <author>John Green</author>
+    <publisher>Dutton Books</publisher>
+    <publication_date>2012-01-10</publication_date>
+    <category>young-adult</category>
+    <price>9.99</price>
+    <stock>72</stock>
+    <rating>4.3</rating>
+    <description>A touching story about two teenagers with cancer</description>
+    <discount>1.00</discount>
+  </book>
+
+  <book isbn="978-0-452-28423-4" edition="1" language="en" format="paperback">
+    <title lang="en">Brave New World</title>
+    <author>Aldous Huxley</author>
+    <publisher>Chatto &amp; Windus</publisher>
+    <publication_date>1932-08-30</publication_date>
+    <category>science-fiction</category>
+    <price>14.99</price>
+    <stock>22</stock>
+    <rating>4.0</rating>
+    <description>A dystopian novel set in a futuristic World State</description>
+  </book>
+
+  <book isbn="978-0-316-34612-3" edition="2" language="en" format="paperback">
+    <title lang="en">The Outsiders</title>
+    <author>S.E. Hinton</author>
+    <publisher>Viking Press</publisher>
+    <publication_date>1967-04-24</publication_date>
+    <category>young-adult</category>
+    <price>12.99</price>
+    <stock>41</stock>
+    <rating>4.4</rating>
+    <description>A coming-of-age novel about greasers and socs</description>
+  </book>
+
+  <book isbn="978-0-06-293155-6" edition="1" language="en" format="hardcover">
+    <title lang="en">Becoming</title>
+    <author>Michelle Obama</author>
+    <publisher>Crown Publishing</publisher>
+    <publication_date>2018-11-13</publication_date>
+    <category>biography</category>
+    <price>32.50</price>
+    <stock>34</stock>
+    <rating>4.7</rating>
+    <description>The memoir of the former First Lady of the United States</description>
+    <review>Inspiring and heartfelt</review>
+  </book>
+
+  <book isbn="978-1-101-87400-1" edition="1" language="en" format="paperback">
+    <title lang="en">Ready Player One</title>
+    <author>Ernest Cline</author>
+    <publisher>Crown Publishing</publisher>
+    <publication_date>2011-08-16</publication_date>
+    <category>science-fiction</category>
+    <price>16.99</price>
+    <stock>37</stock>
+    <rating>4.3</rating>
+    <description>A dystopian science fiction novel set in 2045</description>
+  </book>
+
+  <book isbn="978-0-385-33485-1" edition="1" language="en" format="hardcover">
+    <title lang="en">The Kite Runner</title>
+    <author>Khaled Hosseini</author>
+    <publisher>Riverhead Books</publisher>
+    <publication_date>2003-05-29</publication_date>
+    <category>fiction</category>
+    <price>26.00</price>
+    <stock>20</stock>
+    <rating>4.3</rating>
+    <description>A story of friendship and redemption set in Afghanistan</description>
+  </book>
+
+  <book isbn="978-0-14-118776-1" edition="1" language="en" format="paperback">
+    <title lang="en">Eat, Pray, Love</title>
+    <author>Elizabeth Gilbert</author>
+    <publisher>Viking Press</publisher>
+    <publication_date>2006-02-16</publication_date>
+    <category>travel</category>
+    <price>16.00</price>
+    <stock>30</stock>
+    <rating>3.5</rating>
+    <description>One woman's search for everything across Italy, India and Indonesia</description>
+  </book>
+
+  <book isbn="978-1-59420-293-7" edition="1" language="en" format="hardcover">
+    <title lang="en">The 4-Hour Workweek</title>
+    <author>Timothy Ferriss</author>
+    <publisher>Crown Publishing</publisher>
+    <publication_date>2007-04-24</publication_date>
+    <category>non-fiction</category>
+    <price>24.99</price>
+    <stock>26</stock>
+    <rating>3.9</rating>
+    <description>Escape 9-5, Live Anywhere, and Join the New Rich</description>
+  </book>
+
+  <book isbn="978-0-7126-8333-1" edition="1" language="en" format="paperback">
+    <title lang="en">Guns, Germs, and Steel</title>
+    <author>Jared Diamond</author>
+    <publisher>W. W. Norton</publisher>
+    <publication_date>1997-03-01</publication_date>
+    <category>history</category>
+    <price>18.00</price>
+    <stock>12</stock>
+    <rating>4.1</rating>
+    <description>The Fates of Human Societies</description>
+  </book>
+
+  <book isbn="978-0-06-256140-5" edition="1" language="en" format="ebook">
+    <title lang="en">Dune</title>
+    <author>Frank Herbert</author>
+    <publisher>Chilton Books</publisher>
+    <publication_date>1965-08-01</publication_date>
+    <category>science-fiction</category>
+    <price>12.99</price>
+    <stock>45</stock>
+    <rating>4.5</rating>
+    <description>A science fiction novel set on the desert planet Arrakis</description>
+    <review>Epic and groundbreaking</review>
+  </book>
+
+  <book isbn="978-0-385-53448-4" edition="1" language="en" format="hardcover">
+    <title lang="en">Clean Code</title>
+    <author>Robert C. Martin</author>
+    <publisher>Prentice Hall</publisher>
+    <publication_date>2008-08-01</publication_date>
+    <category>technology</category>
+    <price>49.99</price>
+    <stock>18</stock>
+    <rating>4.6</rating>
+    <description>A Handbook of Agile Software Craftsmanship</description>
+  </book>
+
+  <book isbn="978-0-262-03384-8" edition="2" language="en" format="hardcover">
+    <title lang="en">Introduction to Algorithms</title>
+    <author>Thomas H. Cormen</author>
+    <author>Charles E. Leiserson</author>
+    <author>Ronald L. Rivest</author>
+    <author>Clifford Stein</author>
+    <publisher>MIT Press</publisher>
+    <publication_date>2009-07-31</publication_date>
+    <category>technology</category>
+    <price>89.99</price>
+    <stock>7</stock>
+    <rating>4.5</rating>
+    <description>Comprehensive introduction to algorithms</description>
+  </book>
+</bookstore>
